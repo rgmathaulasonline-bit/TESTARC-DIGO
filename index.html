@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Leitor de Gabarito RG Math - QR Codes</title>
+    <title>Leitor de Gabarito RG Math - Auto</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
         body { background: #eef2f5; margin: 0; padding: 20px; }
@@ -55,11 +55,6 @@
         .stat-value { font-size: 1.5rem; font-weight: bold; color: #1e40af; }
         .stat-label { font-size: 0.75rem; color: #475569; }
         
-        .point-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
-        .point-btn { background: #8b5cf6; font-size: 0.75rem; padding: 5px 10px; margin: 0; }
-        .point-btn.active { background: #10b981; transform: scale(1.05); }
-        .point-btn-done { background: #10b981; opacity: 0.7; }
-        
         .omr-card {
             background: white; position: relative; font-family: 'Segoe UI', 'Arial', sans-serif;
             padding: 40px 30px; border-radius: 12px; border: 1px solid #cbd5e1;
@@ -71,11 +66,6 @@
         .questoes-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
         .questoes-table th, .questoes-table td { border: 1px solid #94a3b8; text-align: center; padding: 10px 5px; position: relative; }
         .questoes-table th { background-color: #f1f5f9; font-weight: 600; }
-        
-        .vertex-tl { position: absolute; top: -10px; left: -10px; background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
-        .vertex-tr { position: absolute; top: -10px; right: -10px; background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
-        .vertex-br { position: absolute; bottom: -10px; right: -10px; background: #ef4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
-        .vertex-bl { position: absolute; bottom: -10px; left: -10px; background: #f59e0b; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
         
         .instrucoes-iniciais { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 16px; margin-bottom: 20px; font-size: 0.85rem; }
         .instrucoes-iniciais h4 { margin: 0 0 8px 0; color: #1e40af; }
@@ -91,6 +81,7 @@
         .legenda-cor.vermelho { background: #ef4444; }
         .legenda-cor.amarelo { background: #eab308; }
         .legenda-cor.roxo { background: #8b5cf6; }
+        .legenda-cor.azul { background: #3b82f6; }
 
         /* CABEÇALHO */
         .rg-header-container {
@@ -245,7 +236,7 @@
             font-size: 0.9rem;
         }
         
-        .qr-status {
+        .status-deteccao {
             background: #f0fdf4;
             border: 1px solid #86efac;
             border-radius: 12px;
@@ -254,25 +245,58 @@
             font-size: 0.85rem;
             color: #166534;
         }
-        .qr-status.error {
+        .status-deteccao.error {
             background: #fef2f2;
             border-color: #fca5a5;
             color: #991b1b;
         }
-        .qr-status .highlight {
+        .status-deteccao.warning {
+            background: #fffbeb;
+            border-color: #fcd34d;
+            color: #92400e;
+        }
+        .status-deteccao .highlight {
             font-weight: 700;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin: 8px 0;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 10px;
+        }
+        
+        .grid-overlay {
+            position: relative;
+            display: inline-block;
+        }
+        .grid-overlay canvas {
+            display: block;
+        }
+        
+        .btn-pequeno {
+            padding: 5px 12px;
+            font-size: 0.75rem;
+            margin: 2px;
         }
     </style>
     <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
-    <!-- jsQR para decodificar QR codes -->
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 
 <div class="loading" id="loadingIndicator">
     <div class="loading-spinner"></div>
     <div>🔍 Processando...</div>
-    <div style="font-size: 12px; margin-top: 5px;">Aguarde um momento</div>
+    <div style="font-size: 12px; margin-top: 5px;">Detectando marcações no gabarito</div>
 </div>
 
 <header class="rg-header-container no-print">
@@ -292,16 +316,23 @@
         <a href="https://sites.google.com/view/rgmathprofrayltonguedes/home" target="_blank" class="btn-home" id="homeButtonWithCameraOff">🏠 HOME</a>
     </div>
     
-    <h1>📋 Leitor de Gabarito RG Math - QR Codes</h1>
+    <h1>📋 Leitor de Gabarito RG Math - Auto</h1>
     
     <div class="instrucoes-iniciais no-print">
-        <h4>📌 Como usar - DETECÇÃO AUTOMÁTICA:</h4>
+        <h4>📌 Como usar - LEITURA AUTOMÁTICA:</h4>
         <ol>
             <li>Defina o <strong>Título da Prova</strong>, <strong>número de questões</strong> e <strong>alternativas</strong></li>
             <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir os gabaritos</li>
             <li>No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</li>
-            <li><strong>Os 4 QR codes nos cantos são detectados AUTOMATICAMENTE</strong> - não precisa clicar na imagem!</li>
             <li>Tire uma foto do cartão preenchido ou envie uma imagem</li>
+            <li><strong>O sistema detecta AUTOMATICAMENTE</strong> os círculos marcados em cada questão</li>
+            <li><strong>Regras:</strong> 
+                <ul>
+                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha</li>
+                    <li>❌ Não pontua se houver <strong>DUAS ou mais</strong> marcações na mesma linha</li>
+                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong></li>
+                </ul>
+            </li>
             <li>Clique em <strong>"CORRIGIR PROVA"</strong> para ver o resultado</li>
         </ol>
     </div>
@@ -338,7 +369,7 @@
                 
                 <div class="camera-info-banner">
                     <strong>📷 Informações sobre a câmera</strong>
-                    <p>✅ A câmera é ativada automaticamente. Os <strong>4 QR codes</strong> nos cantos são detectados automaticamente!</p>
+                    <p>✅ A câmera é ativada automaticamente. O sistema detecta automaticamente as marcações.</p>
                     <p>🏠 Ao clicar em HOME, a câmera será desligada.</p>
                 </div>
                 
@@ -350,8 +381,12 @@
                 </div>
                 <canvas id="canvas" style="display:none;"></canvas>
                 
-                <div id="qrStatus" class="qr-status">
-                    ⏳ Aguardando imagem para detectar QR codes...
+                <div id="statusDeteccao" class="status-deteccao">
+                    ⏳ Aguardando imagem para detectar marcações...
+                </div>
+                
+                <div class="progress-bar" id="progressBar">
+                    <div class="fill" id="progressFill"></div>
                 </div>
                 
                 <div class="legenda">
@@ -359,13 +394,17 @@
                     <div class="legenda-item"><div class="legenda-cor vermelho"></div><span>Errou</span></div>
                     <div class="legenda-item"><div class="legenda-cor amarelo"></div><span>Não detectado</span></div>
                     <div class="legenda-item"><div class="legenda-cor roxo"></div><span>Dupla/Anulada</span></div>
+                    <div class="legenda-item"><div class="legenda-cor azul"></div><span>Marcação detectada</span></div>
                 </div>
             </div>
             
             <div class="card resultado-imagem-area">
                 <div class="section-title">🖼️ Resultado da Correção</div>
                 <canvas id="resultCanvas" style="width:100%; border-radius: 20px;"></canvas>
-                <button id="corrigirBtn" class="btn-green" style="width:100%; font-size:1.2rem; margin-top: 15px;">✨ CORRIGIR PROVA</button>
+                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                    <button id="corrigirBtn" class="btn-green" style="flex:1; font-size:1.1rem;">✨ CORRIGIR PROVA</button>
+                    <button id="mostrarGridBtn" class="btn-info btn-pequeno">📐 Mostrar Grid</button>
+                </div>
             </div>
         </div>
         
@@ -416,26 +455,10 @@
     let cameraActive = true;
     let stream = null;
     
-    // Pontos serão detectados automaticamente via QR codes
-    let pontos = [
-        { x: 0.05, y: 0.05 },
-        { x: 0.95, y: 0.05 },
-        { x: 0.95, y: 0.95 },
-        { x: 0.05, y: 0.95 }
-    ];
-    let pontosDefinidos = [false, false, false, false];
-    let qrDetectados = [false, false, false, false];
-    
     let ultimosResultados = null;
-    let ultimaImagemWarped = null;
-    
-    // Mapeamento dos QR codes para posições
-    const QR_POSITIONS = {
-        'TL': 0, // Superior Esquerdo
-        'TR': 1, // Superior Direito
-        'BR': 2, // Inferior Direito
-        'BL': 3  // Inferior Esquerdo
-    };
+    let ultimaImagemProcessada = null;
+    let mostrarGrid = false;
+    let gridInfo = null;
     
     // Elementos DOM
     const video = document.getElementById('video');
@@ -445,6 +468,7 @@
     const fileUpload = document.getElementById('fileUpload');
     const resultCanvas = document.getElementById('resultCanvas');
     const corrigirBtn = document.getElementById('corrigirBtn');
+    const mostrarGridBtn = document.getElementById('mostrarGridBtn');
     const resultArea = document.getElementById('resultArea');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const gradeDetail = document.getElementById('gradeDetail');
@@ -461,10 +485,12 @@
     const printArea = document.getElementById('printArea');
     const novaProvaBtn = document.getElementById('novaProvaBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    const qrStatus = document.getElementById('qrStatus');
+    const statusDeteccao = document.getElementById('statusDeteccao');
+    const progressFill = document.getElementById('progressFill');
     
     function mostrarLoading() { loadingIndicator.style.display = 'flex'; }
     function esconderLoading() { loadingIndicator.style.display = 'none'; }
+    function atualizarProgresso(pct) { progressFill.style.width = Math.min(100, pct) + '%'; }
     
     function esperarOpenCV() {
         if (typeof cv !== 'undefined' && cv.Mat && cv.imread) {
@@ -476,189 +502,6 @@
         }
     }
     esperarOpenCV();
-    
-    // ==================== QR CODE DETECTION ====================
-    function detectarQRCodes(imageData) {
-        return new Promise((resolve) => {
-            const img = new Image();
-            img.onload = () => {
-                // Criar canvas para extrair pixels
-                const tempCanvas = document.createElement('canvas');
-                tempCanvas.width = img.width;
-                tempCanvas.height = img.height;
-                const ctx = tempCanvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
-                const imageDataObj = ctx.getImageData(0, 0, img.width, img.height);
-                
-                // Usar jsQR para detectar QR codes
-                const code = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                
-                // Se detectou um QR code, usar suas coordenadas
-                if (code) {
-                    // Para detecção de múltiplos QR codes, precisamos escanear a imagem inteira
-                    // Vamos usar uma abordagem de sliding window ou simplesmente confiar no jsQR
-                    // que detecta o primeiro. Para múltiplos, faremos múltiplas chamadas.
-                    
-                    // Na prática, vamos detectar todos os QR codes na imagem
-                    const qrCodes = [];
-                    const step = 50;
-                    const size = Math.min(img.width, img.height) * 0.15;
-                    
-                    // Tentar detectar em diferentes regiões da imagem
-                    for (let y = 0; y < img.height - size; y += step) {
-                        for (let x = 0; x < img.width - size; x += step) {
-                            try {
-                                const subData = ctx.getImageData(x, y, size, size);
-                                const subCode = jsQR(subData.data, subData.width, subData.height, {
-                                    inversionAttempts: "dontInvert",
-                                });
-                                if (subCode) {
-                                    // Verificar se já não temos um QR code próximo
-                                    let isDuplicate = false;
-                                    for (const existing of qrCodes) {
-                                        const dx = existing.x - (x + subCode.location.topLeftCorner.x);
-                                        const dy = existing.y - (y + subCode.location.topLeftCorner.y);
-                                        if (Math.sqrt(dx*dx + dy*dy) < 30) {
-                                            isDuplicate = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!isDuplicate) {
-                                        qrCodes.push({
-                                            x: x + subCode.location.topLeftCorner.x,
-                                            y: y + subCode.location.topLeftCorner.y,
-                                            data: subCode.data,
-                                            width: size
-                                        });
-                                    }
-                                }
-                            } catch(e) {}
-                        }
-                    }
-                    
-                    // Se não encontrou com sliding window, tenta uma abordagem mais simples
-                    if (qrCodes.length === 0) {
-                        // Tentar a detecção em toda a imagem
-                        const fullCode = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height, {
-                            inversionAttempts: "dontInvert",
-                        });
-                        if (fullCode) {
-                            qrCodes.push({
-                                x: fullCode.location.topLeftCorner.x,
-                                y: fullCode.location.topLeftCorner.y,
-                                data: fullCode.data,
-                                width: Math.min(img.width, img.height) * 0.1
-                            });
-                        }
-                    }
-                    
-                    resolve(qrCodes);
-                } else {
-                    resolve([]);
-                }
-            };
-            img.src = imageData;
-        });
-    }
-    
-    // Função para detectar os 4 QR codes nos cantos
-    async function detectarQRCodesCantos(imageData) {
-        const img = new Image();
-        img.src = imageData;
-        await new Promise(resolve => { img.onload = resolve; });
-        
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = img.width;
-        tempCanvas.height = img.height;
-        const ctx = tempCanvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        const imageDataObj = ctx.getImageData(0, 0, img.width, img.height);
-        
-        // Detectar QR codes
-        const qrCodes = [];
-        
-        // Função para detectar em uma região específica
-        function detectarRegiao(x, y, w, h) {
-            try {
-                const subData = ctx.getImageData(x, y, w, h);
-                const code = jsQR(subData.data, subData.width, subData.height, {
-                    inversionAttempts: "dontInvert",
-                });
-                if (code) {
-                    return {
-                        x: x + code.location.topLeftCorner.x,
-                        y: y + code.location.topLeftCorner.y,
-                        data: code.data,
-                        width: w
-                    };
-                }
-            } catch(e) {}
-            return null;
-        }
-        
-        // Detectar nos 4 cantos
-        const margin = Math.min(img.width, img.height) * 0.15;
-        const size = Math.min(img.width, img.height) * 0.2;
-        
-        // Canto Superior Esquerdo
-        let qrTL = detectarRegiao(0, 0, size, size);
-        if (!qrTL) {
-            // Tentar com tamanho variável
-            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
-                qrTL = detectarRegiao(0, 0, s, s);
-                if (qrTL) break;
-            }
-        }
-        
-        // Canto Superior Direito
-        let qrTR = detectarRegiao(img.width - size, 0, size, size);
-        if (!qrTR) {
-            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
-                qrTR = detectarRegiao(img.width - s, 0, s, s);
-                if (qrTR) break;
-            }
-        }
-        
-        // Canto Inferior Direito
-        let qrBR = detectarRegiao(img.width - size, img.height - size, size, size);
-        if (!qrBR) {
-            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
-                qrBR = detectarRegiao(img.width - s, img.height - s, s, s);
-                if (qrBR) break;
-            }
-        }
-        
-        // Canto Inferior Esquerdo
-        let qrBL = detectarRegiao(0, img.height - size, size, size);
-        if (!qrBL) {
-            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
-                qrBL = detectarRegiao(0, img.height - s, s, s);
-                if (qrBL) break;
-            }
-        }
-        
-        const resultados = [];
-        if (qrTL) {
-            resultados.push({ pos: 'TL', x: qrTL.x, y: qrTL.y, data: qrTL.data });
-            logArea.innerHTML += `\n✅ QR code TL detectado em (${Math.round(qrTL.x)}, ${Math.round(qrTL.y)})`;
-        }
-        if (qrTR) {
-            resultados.push({ pos: 'TR', x: qrTR.x, y: qrTR.y, data: qrTR.data });
-            logArea.innerHTML += `\n✅ QR code TR detectado em (${Math.round(qrTR.x)}, ${Math.round(qrTR.y)})`;
-        }
-        if (qrBR) {
-            resultados.push({ pos: 'BR', x: qrBR.x, y: qrBR.y, data: qrBR.data });
-            logArea.innerHTML += `\n✅ QR code BR detectado em (${Math.round(qrBR.x)}, ${Math.round(qrBR.y)})`;
-        }
-        if (qrBL) {
-            resultados.push({ pos: 'BL', x: qrBL.x, y: qrBL.y, data: qrBL.data });
-            logArea.innerHTML += `\n✅ QR code BL detectado em (${Math.round(qrBL.x)}, ${Math.round(qrBL.y)})`;
-        }
-        
-        return resultados;
-    }
     
     // ==================== CÂMERA ====================
     async function iniciarCamera() {
@@ -696,6 +539,258 @@
     
     function toggleCamera() { cameraActive ? desligarCamera() : iniciarCamera(); }
     
+    // ==================== DETECÇÃO AUTOMÁTICA ====================
+    function detectarMarcacoes(imageData) {
+        return new Promise((resolve, reject) => {
+            try {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        // Criar canvas para processamento
+                        const tempCanvas = document.createElement('canvas');
+                        const ctx = tempCanvas.getContext('2d');
+                        
+                        // Redimensionar para um tamanho gerenciável
+                        let w = img.width;
+                        let h = img.height;
+                        const maxDim = 1200;
+                        if (w > maxDim || h > maxDim) {
+                            const scale = maxDim / Math.max(w, h);
+                            w = Math.floor(w * scale);
+                            h = Math.floor(h * scale);
+                        }
+                        tempCanvas.width = w;
+                        tempCanvas.height = h;
+                        ctx.drawImage(img, 0, 0, w, h);
+                        
+                        const imageDataObj = ctx.getImageData(0, 0, w, h);
+                        const data = imageDataObj.data;
+                        
+                        // Converter para escala de cinza e binarizar
+                        const gray = new Uint8Array(w * h);
+                        for (let i = 0; i < data.length; i += 4) {
+                            const r = data[i];
+                            const g = data[i+1];
+                            const b = data[i+2];
+                            gray[i/4] = 0.299 * r + 0.587 * g + 0.114 * b;
+                        }
+                        
+                        // Binarização com Otsu adaptativo
+                        const threshold = calcularOtsu(gray);
+                        const binary = new Uint8Array(w * h);
+                        for (let i = 0; i < gray.length; i++) {
+                            binary[i] = gray[i] < threshold ? 0 : 255;
+                        }
+                        
+                        // Detectar círculos usando Hough Circle Transform (simplificado)
+                        // Vamos usar uma abordagem baseada em contornos
+                        const circles = detectarCirculos(binary, w, h);
+                        
+                        // Organizar por linhas (questões)
+                        const questoes = organizarPorLinhas(circles, numQuestoes, numAlternativas, w, h);
+                        
+                        resolve({
+                            questoes,
+                            w,
+                            h,
+                            binary,
+                            circles
+                        });
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+                img.src = imageData;
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+    
+    function calcularOtsu(gray) {
+        const hist = new Array(256).fill(0);
+        for (let i = 0; i < gray.length; i++) {
+            hist[gray[i]]++;
+        }
+        
+        const total = gray.length;
+        let sum = 0;
+        for (let i = 0; i < 256; i++) {
+            sum += i * hist[i];
+        }
+        
+        let sumB = 0;
+        let wB = 0;
+        let wF = 0;
+        let varMax = 0;
+        let threshold = 0;
+        
+        for (let i = 0; i < 256; i++) {
+            wB += hist[i];
+            if (wB === 0) continue;
+            wF = total - wB;
+            if (wF === 0) break;
+            
+            sumB += i * hist[i];
+            const mB = sumB / wB;
+            const mF = (sum - sumB) / wF;
+            const varBetween = wB * wF * (mB - mF) * (mB - mF);
+            
+            if (varBetween > varMax) {
+                varMax = varBetween;
+                threshold = i;
+            }
+        }
+        
+        return threshold;
+    }
+    
+    function detectarCirculos(binary, w, h) {
+        const circles = [];
+        const minRadius = Math.min(w, h) * 0.015;
+        const maxRadius = Math.min(w, h) * 0.045;
+        const step = 2;
+        
+        // Usar uma abordagem de template matching para círculos
+        // Para simplificar, vamos procurar regiões escuras (preenchidas)
+        const visited = new Uint8Array(w * h);
+        
+        for (let y = 0; y < h; y += step) {
+            for (let x = 0; x < w; x += step) {
+                const idx = y * w + x;
+                if (visited[idx] || binary[idx] === 255) continue;
+                
+                // Flood fill para encontrar região escura
+                const region = [];
+                const stack = [{x, y}];
+                visited[idx] = 1;
+                
+                while (stack.length > 0) {
+                    const p = stack.pop();
+                    region.push(p);
+                    
+                    const neighbors = [
+                        {x: p.x-1, y: p.y}, {x: p.x+1, y: p.y},
+                        {x: p.x, y: p.y-1}, {x: p.x, y: p.y+1},
+                        {x: p.x-1, y: p.y-1}, {x: p.x+1, y: p.y-1},
+                        {x: p.x-1, y: p.y+1}, {x: p.x+1, y: p.y+1}
+                    ];
+                    
+                    for (const n of neighbors) {
+                        if (n.x >= 0 && n.x < w && n.y >= 0 && n.y < h) {
+                            const nIdx = n.y * w + n.x;
+                            if (!visited[nIdx] && binary[nIdx] === 0) {
+                                visited[nIdx] = 1;
+                                stack.push(n);
+                            }
+                        }
+                    }
+                }
+                
+                // Analisar a região
+                if (region.length > 20) {
+                    let sumX = 0, sumY = 0;
+                    let minX = w, maxX = 0, minY = h, maxY = 0;
+                    
+                    for (const p of region) {
+                        sumX += p.x;
+                        sumY += p.y;
+                        if (p.x < minX) minX = p.x;
+                        if (p.x > maxX) maxX = p.x;
+                        if (p.y < minY) minY = p.y;
+                        if (p.y > maxY) maxY = p.y;
+                    }
+                    
+                    const cx = sumX / region.length;
+                    const cy = sumY / region.length;
+                    const width = maxX - minX;
+                    const height = maxY - minY;
+                    const area = region.length;
+                    
+                    // Verificar se é aproximadamente circular
+                    const raio = (width + height) / 4;
+                    const areaEsperada = Math.PI * raio * raio;
+                    const razaoArea = area / areaEsperada;
+                    
+                    // Verificar se está dentro do tamanho esperado
+                    if (raio >= minRadius && raio <= maxRadius && razaoArea > 0.3 && razaoArea < 1.5) {
+                        // Verificar se é preenchido (proporção de pixels escuros na bounding box)
+                        let darkCount = 0;
+                        const bboxArea = width * height;
+                        for (let y2 = minY; y2 <= maxY; y2++) {
+                            for (let x2 = minX; x2 <= maxX; x2++) {
+                                if (binary[y2 * w + x2] === 0) darkCount++;
+                            }
+                        }
+                        const fillRatio = darkCount / bboxArea;
+                        
+                        if (fillRatio > 0.2) {
+                            circles.push({
+                                x: cx,
+                                y: cy,
+                                raio: raio,
+                                area: area,
+                                fillRatio: fillRatio,
+                                width: width,
+                                height: height
+                            });
+                        }
+                    }
+                }
+            }
+        }
+        
+        return circles;
+    }
+    
+    function organizarPorLinhas(circles, numQ, numAlt, w, h) {
+        if (circles.length === 0) return [];
+        
+        // Ordenar por Y (linha)
+        circles.sort((a, b) => a.y - b.y);
+        
+        // Dividir em grupos de linhas
+        const alturaLinha = h / numQ;
+        const questoes = [];
+        
+        for (let q = 0; q < numQ; q++) {
+            const yMin = q * alturaLinha;
+            const yMax = (q + 1) * alturaLinha;
+            
+            const circulosLinha = circles.filter(c => c.y >= yMin && c.y < yMax);
+            
+            // Ordenar por X (coluna)
+            circulosLinha.sort((a, b) => a.x - b.x);
+            
+            const marcacoes = [];
+            const larguraColuna = w / numAlt;
+            
+            for (const circle of circulosLinha) {
+                const col = Math.floor(circle.x / larguraColuna);
+                if (col >= 0 && col < numAlt) {
+                    marcacoes.push({
+                        col: col,
+                        letra: letras[col],
+                        x: circle.x,
+                        y: circle.y,
+                        raio: circle.raio,
+                        fillRatio: circle.fillRatio
+                    });
+                }
+            }
+            
+            questoes.push({
+                questao: q + 1,
+                marcacoes: marcacoes,
+                temDupla: marcacoes.length > 1,
+                temMarca: marcacoes.length === 1
+            });
+        }
+        
+        return questoes;
+    }
+    
     // ==================== PROCESSAMENTO DE IMAGEM ====================
     async function capturarFoto() {
         if (!cameraActive || !stream || !video.videoWidth) {
@@ -720,10 +815,11 @@
         reader.readAsDataURL(file); 
     }
     
-    async function processarImagem(imageData) { 
+    async function processarImagem(imageData) {
         currentImageData = imageData;
+        mostrarGrid = false;
         
-        // Mostrar a imagem no canvas de resultado
+        // Mostrar a imagem no canvas
         const img = new Image();
         img.src = imageData;
         await new Promise(resolve => { img.onload = resolve; });
@@ -733,120 +829,297 @@
         resultCanvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         
-        // Resetar pontos
-        pontos = [
-            { x: 0.05, y: 0.05 },
-            { x: 0.95, y: 0.05 },
-            { x: 0.95, y: 0.95 },
-            { x: 0.05, y: 0.95 }
-        ];
-        pontosDefinidos = [false, false, false, false];
-        qrDetectados = [false, false, false, false];
-        
-        // Tentar detectar QR codes automaticamente
-        qrStatus.textContent = '🔍 Detectando QR codes nos cantos...';
-        qrStatus.className = 'qr-status';
+        statusDeteccao.textContent = '🔍 Detectando marcações...';
+        statusDeteccao.className = 'status-deteccao';
+        atualizarProgresso(10);
         
         try {
-            const qrResults = await detectarQRCodesCantos(imageData);
+            const resultado = await detectarMarcacoes(imageData);
+            atualizarProgresso(80);
             
-            if (qrResults.length >= 4) {
-                // Organizar os QR codes por posição
-                const posMap = {};
-                for (const qr of qrResults) {
-                    posMap[qr.pos] = qr;
-                }
+            gridInfo = resultado;
+            
+            // Analisar resultados
+            const questoes = resultado.questoes;
+            const qtdDetectadas = questoes.filter(q => q.temMarca).length;
+            const qtdDuplas = questoes.filter(q => q.temDupla).length;
+            
+            if (qtdDetectadas > 0 || qtdDuplas > 0) {
+                statusDeteccao.innerHTML = `
+                    ✅ Detectadas <span class="highlight">${qtdDetectadas + qtdDuplas}</span> questões com marcação 
+                    (${qtdDetectadas} únicas, ${qtdDuplas} com dupla)
+                `;
+                statusDeteccao.className = 'status-deteccao';
                 
-                // Definir os pontos com base nas posições dos QR codes
-                const ordem = ['TL', 'TR', 'BR', 'BL'];
-                let todosDetectados = true;
-                
-                for (let i = 0; i < ordem.length; i++) {
-                    const pos = ordem[i];
-                    if (posMap[pos]) {
-                        const qr = posMap[pos];
-                        // Converter coordenadas para proporção
-                        pontos[i] = {
-                            x: qr.x / resultCanvas.width,
-                            y: qr.y / resultCanvas.height
-                        };
-                        pontosDefinidos[i] = true;
-                        qrDetectados[i] = true;
-                        logArea.innerHTML += `\n✅ QR code ${pos} detectado automaticamente!`;
-                    } else {
-                        todosDetectados = false;
-                        logArea.innerHTML += `\n⚠️ QR code ${pos} NÃO detectado.`;
-                    }
-                }
-                
-                if (todosDetectados) {
-                    qrStatus.textContent = '✅ Todos os 4 QR codes detectados! Pronto para corrigir.';
-                    qrStatus.className = 'qr-status';
-                } else {
-                    qrStatus.textContent = '⚠️ Alguns QR codes não foram detectados. Verifique a imagem.';
-                    qrStatus.className = 'qr-status error';
-                }
-            } else if (qrResults.length > 0) {
-                qrStatus.textContent = `⚠️ Apenas ${qrResults.length} QR code(s) detectado(s). São necessários 4.`;
-                qrStatus.className = 'qr-status error';
-                logArea.innerHTML += `\n⚠️ Apenas ${qrResults.length} QR code(s) detectado(s)`;
+                // Mostrar as marcações na imagem
+                desenharMarcacoes(resultado);
             } else {
-                qrStatus.textContent = '❌ Nenhum QR code detectado. Verifique se a imagem está nítida e com boa iluminação.';
-                qrStatus.className = 'qr-status error';
-                logArea.innerHTML += '\n❌ Nenhum QR code detectado!';
+                statusDeteccao.innerHTML = '⚠️ Nenhuma marcação detectada. Verifique a iluminação e o contraste.';
+                statusDeteccao.className = 'status-deteccao error';
             }
+            
+            atualizarProgresso(100);
+            setTimeout(() => atualizarProgresso(0), 1000);
+            
+            logArea.innerHTML += `\n🔍 Detectadas ${qtdDetectadas + qtdDuplas} questões com marcação`;
+            
         } catch (err) {
-            qrStatus.textContent = '❌ Erro ao detectar QR codes: ' + err.message;
-            qrStatus.className = 'qr-status error';
-            logArea.innerHTML += `\n❌ Erro na detecção: ${err.message}`;
+            statusDeteccao.innerHTML = '❌ Erro na detecção: ' + err.message;
+            statusDeteccao.className = 'status-deteccao error';
+            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
         }
-        
-        // Desenhar a imagem com os pontos
-        desenharPontosNaImagem();
-        
-        logArea.innerHTML += "\n📸 Imagem carregada. QR codes detectados automaticamente!";
     }
     
-    function desenharPontosNaImagem() {
-        if (!currentImageData) return;
-        
+    function desenharMarcacoes(resultado) {
+        const ctx = resultCanvas.getContext('2d');
         const img = new Image();
         img.src = currentImageData;
         img.onload = () => {
-            const ctx = resultCanvas.getContext('2d');
-            resultCanvas.width = img.width;
-            resultCanvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
             
-            // Desenhar os pontos detectados
-            const cores = ['#10b981', '#3b82f6', '#ef4444', '#f59e0b'];
-            const labels = ['TL', 'TR', 'BR', 'BL'];
+            const questoes = resultado.questoes;
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
             
-            for (let i = 0; i < pontos.length; i++) {
-                const x = pontos[i].x * resultCanvas.width;
-                const y = pontos[i].y * resultCanvas.height;
+            // Desenhar grid se ativado
+            if (mostrarGrid) {
+                const numQ = numQuestoes;
+                const numAlt = numAlternativas;
+                const cellW = w / numAlt;
+                const cellH = h / numQ;
                 
-                // Círculo
-                ctx.beginPath();
-                ctx.arc(x, y, 15, 0, 2 * Math.PI);
-                ctx.fillStyle = pontosDefinidos[i] ? cores[i] + '80' : 'rgba(239,68,68,0.5)';
-                ctx.fill();
-                ctx.strokeStyle = pontosDefinidos[i] ? cores[i] : '#ef4444';
-                ctx.lineWidth = 2;
-                ctx.stroke();
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.lineWidth = 1;
                 
-                // Label
-                ctx.fillStyle = '#fff';
+                for (let q = 0; q <= numQ; q++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, q * cellH);
+                    ctx.lineTo(w, q * cellH);
+                    ctx.stroke();
+                }
+                for (let a = 0; a <= numAlt; a++) {
+                    ctx.beginPath();
+                    ctx.moveTo(a * cellW, 0);
+                    ctx.lineTo(a * cellW, h);
+                    ctx.stroke();
+                }
+            }
+            
+            // Desenhar marcações detectadas
+            for (const q of questoes) {
+                for (const marc of q.marcacoes) {
+                    const x = marc.x * (resultCanvas.width / resultado.w);
+                    const y = marc.y * (resultCanvas.height / resultado.h);
+                    const raio = marc.raio * (resultCanvas.width / resultado.w);
+                    
+                    const cor = q.temDupla ? '#8b5cf6' : '#3b82f6';
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, raio, 0, 2 * Math.PI);
+                    ctx.fillStyle = cor + '60';
+                    ctx.fill();
+                    ctx.strokeStyle = cor;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = '#fff';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(marc.letra, x, y);
+                }
+            }
+            
+            // Adicionar legenda de status
+            for (const q of questoes) {
+                const yPos = (q.questao - 0.5) * (h / numQuestoes);
+                const xPos = w - 30;
+                
+                let status = '❓';
+                let cor = '#eab308';
+                
+                if (q.temDupla) {
+                    status = '⚠️ DUPLA';
+                    cor = '#8b5cf6';
+                } else if (q.temMarca) {
+                    status = '✓';
+                    cor = '#10b981';
+                } else {
+                    status = '✗';
+                    cor = '#ef4444';
+                }
+                
+                ctx.fillStyle = cor;
                 ctx.font = 'bold 14px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(labels[i], x, y);
+                ctx.fillText(status, xPos, yPos);
+            }
+        };
+    }
+    
+    // ==================== CORREÇÃO ====================
+    async function executarCorrecao() {
+        if (!currentImageData) { alert("Nenhuma imagem."); return; }
+        
+        const gabarito = obterGabaritoDaTela();
+        if (Object.keys(gabarito).length === 0) { alert("Preencha o gabarito!"); return; }
+        
+        mostrarLoading();
+        logArea.innerHTML += "\n🔍 Corrigindo prova...";
+        atualizarProgresso(10);
+        
+        try {
+            // Detectar marcações
+            const resultado = await detectarMarcacoes(currentImageData);
+            atualizarProgresso(60);
+            
+            const questoes = resultado.questoes;
+            
+            // Corrigir
+            let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
+            const detalhes = [];
+            
+            for (let i = 0; i < numQuestoes; i++) {
+                const q = questoes[i] || { marcacoes: [], temDupla: false, temMarca: false };
+                const numQ = i + 1;
+                const gab = gabarito[numQ];
                 
-                // Status QR
-                if (qrDetectados[i]) {
-                    ctx.fillStyle = '#10b981';
+                let status = 'nao_detectado';
+                let marcado = '?';
+                let msg = '';
+                
+                if (q.temDupla) {
+                    status = 'dupla';
+                    marcado = '⚠️ DUPLA';
+                    duplas++;
+                    msg = `Q${numQ}: Dupla marcação - ANULADA`;
+                } else if (q.temMarca) {
+                    const letra = q.marcacoes[0].letra;
+                    marcado = letra;
+                    if (gab && gab !== "") {
+                        if (gab === letra) {
+                            status = 'acertou';
+                            acertos++;
+                            msg = `Q${numQ}: ✓ ${letra} (acertou)`;
+                        } else {
+                            status = 'errou';
+                            erros++;
+                            msg = `Q${numQ}: ✗ ${letra} (errou - gabarito: ${gab})`;
+                        }
+                    } else {
+                        status = 'errou';
+                        erros++;
+                        msg = `Q${numQ}: ✗ ${letra} (sem gabarito)`;
+                    }
+                } else {
+                    status = 'nao_detectado';
+                    marcado = '?';
+                    naoDetectados++;
+                    msg = `Q${numQ}: ❓ Não detectado`;
+                }
+                
+                detalhes.push({
+                    questao: numQ,
+                    status: status,
+                    marcado: marcado,
+                    gabarito: gab || '-',
+                    msg: msg
+                });
+                
+                logArea.innerHTML += `\n${msg}`;
+            }
+            
+            atualizarProgresso(90);
+            
+            // Salvar resultados
+            ultimosResultados = { detalhes, acertos, erros, duplas, naoDetectados };
+            ultimaImagemProcessada = currentImageData;
+            
+            // Mostrar resultados
+            let percentual = (acertos / numQuestoes) * 100;
+            let nota = (acertos/numQuestoes*10).toFixed(1);
+            scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
+            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} marcação(ões) dupla(as)<br>⚪ ${naoDetectados} não detectado(s)`;
+            statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
+                <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
+            resultArea.style.display = 'block';
+            
+            // Desenhar resultado na imagem
+            desenharResultadoFinal();
+            
+            atualizarProgresso(100);
+            setTimeout(() => atualizarProgresso(0), 1000);
+            
+            statusDeteccao.innerHTML = `✅ Correção concluída! ${acertos} acertos, ${erros} erros, ${duplas} duplas, ${naoDetectados} não detectados`;
+            statusDeteccao.className = 'status-deteccao';
+            
+        } catch (err) {
+            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
+            alert(`Erro: ${err.message}`);
+            statusDeteccao.innerHTML = '❌ Erro na correção: ' + err.message;
+            statusDeteccao.className = 'status-deteccao error';
+        } finally {
+            esconderLoading();
+        }
+    }
+    
+    function desenharResultadoFinal() {
+        if (!ultimaImagemProcessada) return;
+        
+        const ctx = resultCanvas.getContext('2d');
+        const img = new Image();
+        img.src = ultimaImagemProcessada;
+        img.onload = () => {
+            ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+            
+            if (!ultimosResultados) return;
+            
+            const w = resultCanvas.width;
+            const h = resultCanvas.height;
+            const cellH = h / numQuestoes;
+            
+            for (const det of ultimosResultados.detalhes) {
+                const y = (det.questao - 0.5) * cellH;
+                
+                let cor, simbolo;
+                switch(det.status) {
+                    case 'acertou': cor = '#10b981'; simbolo = '✓'; break;
+                    case 'errou': cor = '#ef4444'; simbolo = '✗'; break;
+                    case 'dupla': cor = '#8b5cf6'; simbolo = '⚠'; break;
+                    default: cor = '#eab308'; simbolo = '?'; break;
+                }
+                
+                // Círculo de status
+                ctx.beginPath();
+                ctx.arc(30, y, 20, 0, 2 * Math.PI);
+                ctx.fillStyle = cor + '80';
+                ctx.fill();
+                ctx.strokeStyle = cor;
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(simbolo, 30, y);
+                
+                // Texto da questão
+                ctx.fillStyle = '#1e293b';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`Q${det.questao}: ${det.marcado}`, 60, y);
+                
+                if (det.gabarito && det.gabarito !== '-') {
+                    ctx.fillStyle = '#64748b';
                     ctx.font = '12px Arial';
-                    ctx.fillText('✓', x + 20, y - 20);
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`Gabarito: ${det.gabarito}`, w - 20, y);
                 }
             }
         };
@@ -855,8 +1128,6 @@
     // ==================== FUNÇÕES DO GABARITO ====================
     function gerarCartaoOMR(titulo, qtd, altCount) {
         const letrasUsadas = letras.slice(0, altCount);
-        const indexA = 0;
-        const indexD = altCount >= 4 ? 3 : altCount - 1;
         
         let html = `<div class="omr-card"><h2 style="text-align:center;">${titulo}</h2>
             <div style="display:flex; justify-content:space-between; margin:20px 0; padding:8px 0; border-top:1px solid #ccc; border-bottom:1px solid #ccc;">
@@ -872,13 +1143,7 @@
         for (let i = 1; i <= qtd; i++) {
             html += `<tr><td style="font-weight:bold;">${i}</td>`;
             for (let j = 0; j < altCount; j++) {
-                let vertexHtml = "";
-                // QR codes nos cantos - usando pequenos quadrados com padrão de QR
-                if (i === 1 && j === indexA) vertexHtml = `<div class="vertex-tl" style="font-size:10px;">⬛</div>`;
-                if (i === 1 && j === indexD) vertexHtml = `<div class="vertex-tr" style="font-size:10px;">⬛</div>`;
-                if (i === qtd && j === altCount - 1) vertexHtml = `<div class="vertex-br" style="font-size:10px;">⬛</div>`;
-                if (i === qtd && j === 0) vertexHtml = `<div class="vertex-bl" style="font-size:10px;">⬛</div>`;
-                html += `<td style="position:relative;"><div class="circle-omr"></div>${vertexHtml}</td>`;
+                html += `<td style="position:relative;"><div class="circle-omr"></div></td>`;
             }
             html += `</tr>`;
         }
@@ -913,11 +1178,7 @@
                 .questoes-table { width:100%; border-collapse:collapse; margin:20px 0; }
                 .questoes-table th, .questoes-table td { border:1px solid #000; padding:8px; text-align:center; position:relative; }
                 h2 { text-align:center; }
-                .vertex-tl { position:absolute; top:-10px; left:-10px; background:#10b981; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
-                .vertex-tr { position:absolute; top:-10px; right:-10px; background:#3b82f6; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
-                .vertex-br { position:absolute; bottom:-10px; right:-10px; background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
-                .vertex-bl { position:absolute; bottom:-10px; left:-10px; background:#f59e0b; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
-                @media print { body { padding:0; } .vertex-tl, .vertex-tr, .vertex-br, .vertex-bl { print-color-adjust: exact; } }
+                @media print { body { padding:0; } }
             </style></head><body>${conteudo}<script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);};<\/script></body></html>`);
         win.document.close();
     }
@@ -975,280 +1236,25 @@
         logArea.innerHTML += "\n📋 Gabarito preenchido com todas 'A'";
     }
     
-    // ==================== CORREÇÃO ====================
-    async function executarCorrecao() {
-        if (!currentImageData) { alert("Nenhuma imagem."); return; }
-        if (!pontosDefinidos.every(v => v === true)) { 
-            alert("Os 4 QR codes não foram detectados. Verifique a imagem.");
-            return;
-        }
-        const gabarito = obterGabaritoDaTela();
-        if (Object.keys(gabarito).length === 0) { alert("Preencha o gabarito!"); return; }
-        if (!cvReady) { alert("Aguarde OpenCV."); return; }
-        
-        mostrarLoading();
-        logArea.innerHTML += "\n🔍 Corrigindo prova...";
-        
-        try {
-            let img = new Image(); 
-            img.src = currentImageData;
-            await new Promise((resolve) => { img.onload = resolve; });
-            
-            let src = cv.imread(img);
-            
-            let scale = 1;
-            let maxDim = 1000;
-            if (src.cols > maxDim || src.rows > maxDim) {
-                scale = maxDim / Math.max(src.cols, src.rows);
-                let newWidth = Math.floor(src.cols * scale);
-                let newHeight = Math.floor(src.rows * scale);
-                let resized = new cv.Mat();
-                cv.resize(src, resized, new cv.Size(newWidth, newHeight));
-                src.delete();
-                src = resized;
-            }
-            
-            let ptsAbs = pontos.map(p => ({ x: p.x * src.cols, y: p.y * src.rows }));
-            
-            const DW = 800, DH = 1000;
-            
-            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                ptsAbs[0].x, ptsAbs[0].y, ptsAbs[1].x, ptsAbs[1].y,
-                ptsAbs[2].x, ptsAbs[2].y, ptsAbs[3].x, ptsAbs[3].y
-            ]);
-            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, DW, 0, DW, DH, 0, DH]);
-            let M = cv.getPerspectiveTransform(srcTri, dstTri);
-            let warped = new cv.Mat();
-            cv.warpPerspective(src, warped, M, new cv.Size(DW, DH));
-            
-            let gray = new cv.Mat();
-            cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
-            
-            let binary = new cv.Mat();
-            cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
-            
-            const rows = numQuestoes, cols = numAlternativas;
-            let cellHeight = DH / rows;
-            let cellWidth = DW / cols;
-            let marginX = cellWidth * 0.15;
-            let marginY = cellHeight * 0.15;
-            let innerWidth = cellWidth - (marginX * 2);
-            let innerHeight = cellHeight - (marginY * 2);
-            
-            let respostasAluno = {};
-            let posicoes = {};
-            let statusQuestao = {};
-            
-            for (let r = 0; r < rows; r++) {
-                let contagens = [];
-                let centroids = [];
-                
-                for (let c = 0; c < cols; c++) {
-                    let x = c * cellWidth + marginX;
-                    let y = r * cellHeight + marginY;
-                    
-                    if (x + innerWidth > DW) x = DW - innerWidth;
-                    if (y + innerHeight > DH) y = DH - innerHeight;
-                    
-                    let cell = binary.roi(new cv.Rect(Math.floor(x), Math.floor(y), Math.floor(innerWidth), Math.floor(innerHeight)));
-                    let nz = cv.countNonZero(cell);
-                    let area = innerWidth * innerHeight;
-                    let fillPercent = nz / area;
-                    
-                    if (fillPercent > 0.05) {
-                        let moments = cv.moments(cell);
-                        if (moments.m00 > 0) {
-                            let cx = x + (moments.m10 / moments.m00);
-                            let cy = y + (moments.m01 / moments.m00);
-                            centroids.push({ c, cx, cy, fillPercent });
-                        }
-                    }
-                    
-                    contagens.push(fillPercent);
-                    cell.delete();
-                }
-                
-                let melhorAlt = 0;
-                let melhorFill = 0;
-                let segundaMelhor = 0;
-                
-                for (let i = 0; i < contagens.length; i++) {
-                    if (contagens[i] > melhorFill) {
-                        segundaMelhor = melhorFill;
-                        melhorFill = contagens[i];
-                        melhorAlt = i;
-                    } else if (contagens[i] > segundaMelhor) {
-                        segundaMelhor = contagens[i];
-                    }
-                }
-                
-                statusQuestao[r+1] = 'nao_detectado';
-                
-                if (melhorFill >= 0.05) {
-                    if (segundaMelhor >= 0.05 && (segundaMelhor / melhorFill) > 0.65) {
-                        statusQuestao[r+1] = 'marcacao_dupla';
-                        logArea.innerHTML += `\n⚠️ Q${r+1}: Marcação dupla - ANULADA`;
-                    } else {
-                        let letra = letras[melhorAlt];
-                        respostasAluno[r+1] = letra;
-                        statusQuestao[r+1] = 'marcado';
-                        let found = centroids.find(c => c.c === melhorAlt);
-                        if (found) {
-                            posicoes[r+1] = { x: found.cx, y: found.cy, letra: letra };
-                        } else {
-                            posicoes[r+1] = { x: (melhorAlt * cellWidth) + (cellWidth/2), y: (r * cellHeight) + (cellHeight/2), letra: letra };
-                        }
-                        logArea.innerHTML += `\n✓ Q${r+1}: Detectado ${letra} (${Math.round(melhorFill*100)}%)`;
-                    }
-                } else {
-                    logArea.innerHTML += `\n⚠️ Q${r+1}: Não detectado`;
-                }
-            }
-            
-            let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
-            let marcacoes = [];
-            
-            for (let i = 1; i <= numQuestoes; i++) {
-                let resultado = 'nao_detectado';
-                let marcado = '?';
-                
-                if (statusQuestao[i] === 'marcado' && respostasAluno[i]) {
-                    marcado = respostasAluno[i];
-                    if (gabarito[i] && gabarito[i] !== "") {
-                        if (gabarito[i] === respostasAluno[i]) {
-                            resultado = 'acertou';
-                            acertos++;
-                        } else {
-                            resultado = 'errou';
-                            erros++;
-                        }
-                    } else {
-                        resultado = 'errou';
-                        erros++;
-                    }
-                } else if (statusQuestao[i] === 'marcacao_dupla') {
-                    resultado = 'marcacao_dupla';
-                    marcado = '⚠️ DUPLA';
-                    duplas++;
-                } else {
-                    resultado = 'nao_detectado';
-                    marcado = '?';
-                    naoDetectados++;
-                }
-                
-                if (posicoes[i]) {
-                    marcacoes.push({ x: posicoes[i].x, y: posicoes[i].y, marcado: marcado, resultado: resultado });
-                } else {
-                    marcacoes.push({ x: DW/2, y: ((i-1)*cellHeight)+(cellHeight/2), marcado: marcado, resultado: resultado });
-                }
-            }
-            
-            ultimosResultados = { marcacoes, acertos, erros, duplas, naoDetectados };
-            
-            let canvasWarp = document.createElement('canvas');
-            canvasWarp.width = warped.cols;
-            canvasWarp.height = warped.rows;
-            cv.imshow(canvasWarp, warped);
-            ultimaImagemWarped = canvasWarp.toDataURL('image/jpeg', 0.9);
-            desenharResultadoNaImagem();
-            
-            let percentual = (acertos / numQuestoes) * 100;
-            let nota = (acertos/numQuestoes*10).toFixed(1);
-            scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
-            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} marcação(ões) dupla(as)<br>⚪ ${naoDetectados} não detectado(s)`;
-            statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
-                <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
-            resultArea.style.display = 'block';
-            
-            src.delete(); srcTri.delete(); dstTri.delete(); M.delete(); warped.delete(); gray.delete(); binary.delete();
-        } catch(err) {
-            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
-            alert(`Erro: ${err.message}`);
-        } finally {
-            esconderLoading();
-        }
-    }
-    
-    function desenharResultadoNaImagem() {
-        if (!ultimaImagemWarped) {
-            if (currentImageData) {
-                let img = new Image();
-                img.onload = () => {
-                    const ctx = resultCanvas.getContext('2d');
-                    resultCanvas.width = img.width;
-                    resultCanvas.height = img.height;
-                    ctx.drawImage(img, 0, 0);
-                    // Desenhar os pontos QR detectados
-                    for (let i = 0; i < pontos.length; i++) {
-                        const x = pontos[i].x * resultCanvas.width;
-                        const y = pontos[i].y * resultCanvas.height;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 12, 0, 2 * Math.PI);
-                        ctx.fillStyle = pontosDefinidos[i] ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)';
-                        ctx.fill();
-                        ctx.fillStyle = '#fff';
-                        ctx.font = 'bold 14px Arial';
-                        ctx.fillText(['TL','TR','BR','BL'][i], x-5, y+6);
-                    }
-                };
-                img.src = currentImageData;
-            }
-            return;
-        }
-        let img = new Image();
-        img.onload = () => {
-            const ctx = resultCanvas.getContext('2d');
-            resultCanvas.width = img.width;
-            resultCanvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            if (ultimosResultados) {
-                for (let i = 0; i < ultimosResultados.marcacoes.length; i++) {
-                    const marc = ultimosResultados.marcacoes[i];
-                    let cor = '#eab308';
-                    if (marc.resultado === 'acertou') cor = '#10b981';
-                    else if (marc.resultado === 'errou') cor = '#ef4444';
-                    else if (marc.resultado === 'marcacao_dupla') cor = '#8b5cf6';
-                    
-                    ctx.beginPath();
-                    ctx.arc(marc.x, marc.y, 18, 0, 2 * Math.PI);
-                    ctx.fillStyle = cor + '60';
-                    ctx.fill();
-                    ctx.strokeStyle = cor;
-                    ctx.lineWidth = 2;
-                    ctx.stroke();
-                    ctx.fillStyle = cor;
-                    ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(marc.marcado, marc.x, marc.y);
-                }
-            }
-        };
-        img.src = ultimaImagemWarped;
-    }
-    
     function resetarCorrecao() {
         currentImageData = null;
         ultimosResultados = null;
-        ultimaImagemWarped = null;
-        pontos = [
-            { x: 0.05, y: 0.05 },
-            { x: 0.95, y: 0.05 },
-            { x: 0.95, y: 0.95 },
-            { x: 0.05, y: 0.95 }
-        ];
-        pontosDefinidos = [false, false, false, false];
-        qrDetectados = [false, false, false, false];
+        ultimaImagemProcessada = null;
         resultArea.style.display = 'none';
         const ctx = resultCanvas.getContext('2d');
         ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-        qrStatus.textContent = '⏳ Aguardando nova imagem para detectar QR codes...';
-        qrStatus.className = 'qr-status';
-        logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova! O gabarito oficial foi mantido.";
-        alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.\n\nTire uma nova foto ou envie outra imagem.");
+        statusDeteccao.textContent = '⏳ Aguardando nova imagem para detectar marcações...';
+        statusDeteccao.className = 'status-deteccao';
+        logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova!";
+        alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.");
+    }
+    
+    function toggleGrid() {
+        mostrarGrid = !mostrarGrid;
+        mostrarGridBtn.textContent = mostrarGrid ? '📐 Ocultar Grid' : '📐 Mostrar Grid';
+        if (gridInfo && currentImageData) {
+            desenharMarcacoes(gridInfo);
+        }
     }
     
     // ==================== EVENTOS ====================
@@ -1256,6 +1262,7 @@
     toggleCameraBtn.addEventListener('click', toggleCamera);
     fileUpload.addEventListener('change', (e) => { if(e.target.files[0]) carregarUpload(e.target.files[0]); });
     corrigirBtn.addEventListener('click', executarCorrecao);
+    mostrarGridBtn.addEventListener('click', toggleGrid);
     btnAplicarConfig.addEventListener('click', atualizarCartaoVisual);
     btnGerarPDF.addEventListener('click', gerarPDF);
     novaProvaBtn.addEventListener('click', resetarCorrecao);
@@ -1264,14 +1271,29 @@
     
     const homeButton = document.getElementById('homeButtonWithCameraOff');
     if (homeButton) {
-        homeButton.addEventListener('click', (e) => {
-            desligarCamera();
-        });
+        homeButton.addEventListener('click', () => desligarCamera());
     }
     
     // ==================== INICIALIZAÇÃO ====================
     iniciarCamera();
     atualizarCartaoVisual();
+    
+    // Redimensionar canvas quando a janela mudar
+    window.addEventListener('resize', () => {
+        if (ultimaImagemProcessada) {
+            const img = new Image();
+            img.src = ultimaImagemProcessada;
+            img.onload = () => {
+                resultCanvas.width = img.width;
+                resultCanvas.height = img.height;
+                if (ultimosResultados) {
+                    desenharResultadoFinal();
+                } else if (gridInfo) {
+                    desenharMarcacoes(gridInfo);
+                }
+            };
+        }
+    });
 </script>
 </body>
 </html>
