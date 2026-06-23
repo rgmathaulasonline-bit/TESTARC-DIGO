@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Leitor de Gabarito RG Math - QR Codes</title>
+    <style>
+        * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
+        body { background: #eef2f5; margin: 0; padding: 20px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 32px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h1 { margin-top: 0; color: #0f172a; font-size: 1.5rem; }
+        
+        .home-button-container { display: flex; justify-content: flex-start; margin-bottom: 20px; }
+        .btn-home {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: white; border: none; padding: 10px 20px; border-radius: 40px;
+            font-weight: 600; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px;
+            text-decoration: none; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .btn-home:hover { background: linear-gradient(135deg, #0f172a, #020617); transform: translateY(-2px); }
+        
+        .config-panel { background: #f8fafc; border-radius: 24px; padding: 20px; margin-bottom: 30px; display: flex; flex-wrap: wrap; gap: 25px; align-items: flex-end; border: 1px solid #e2e8f0; }
+        .config-item { display: flex; flex-direction: column; gap: 6px; }
+        .config-item label { font-weight: 600; font-size: 0.85rem; color: #334155; }
+        .config-item input, .config-item select { padding: 8px 12px; border-radius: 40px; border: 1px solid #cbd5e1; font-size: 1rem; background: white; }
+        button { background: #3b82f6; border: none; color: white; font-weight: 600; padding: 10px 20px; border-radius: 40px; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+        button:hover { background: #2563eb; transform: scale(0.97); }
+        .btn-green { background: #10b981; }
+        .btn-green:hover { background: #059669; }
+        .btn-secondary { background: #475569; }
+        .btn-warning { background: #eab308; color: #1e293b; }
+        .btn-purple { background: #8b5cf6; }
+        .btn-red { background: #ef4444; }
+        .btn-orange { background: #f97316; }
+        .btn-info { background: #06b6d4; }
+        
+        .two-columns { display: flex; flex-wrap: wrap; gap: 25px; margin-top: 20px; }
+        .column { flex: 1; min-width: 300px; }
+        .card { background: #f8fafc; border-radius: 24px; padding: 18px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .section-title { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        video, #imagePreview { width: 100%; border-radius: 20px; background: #0f172a; border: 2px solid #cbd5e1; max-height: 320px; object-fit: contain; }
+        #resultCanvas { width: 100%; border-radius: 20px; border: 2px solid #cbd5e1; background: #0f172a; }
+        
+        .gabarito-grid { background: white; border-radius: 20px; border: 1px solid #cbd5e1; overflow-x: auto; }
+        .gabarito-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        .gabarito-table th, .gabarito-table td { border: 1px solid #cbd5e1; padding: 8px 4px; text-align: center; }
+        .gabarito-table select { padding: 5px; border-radius: 20px; border: 1px solid #94a3b8; background: white; cursor: pointer; }
+        
+        .result-area { background: #eef2ff; border-radius: 24px; padding: 18px; text-align: center; margin-bottom: 20px; }
+        .score { font-size: 2.5rem; font-weight: 800; color: #1e40af; }
+        .log { background: #1e293b; color: #cbd5e6; border-radius: 20px; padding: 14px; font-family: monospace; font-size: 0.8rem; max-height: 250px; overflow-y: auto; margin-top: 20px; }
+        .stats { display: flex; justify-content: space-around; margin-top: 15px; padding-top: 15px; border-top: 1px solid #cbd5e1; flex-wrap: wrap; gap: 10px; }
+        .stat-item { text-align: center; min-width: 70px; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #1e40af; }
+        .stat-label { font-size: 0.75rem; color: #475569; }
+        
+        .point-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
+        .point-btn { background: #8b5cf6; font-size: 0.75rem; padding: 5px 10px; margin: 0; }
+        .point-btn.active { background: #10b981; transform: scale(1.05); }
+        .point-btn-done { background: #10b981; opacity: 0.7; }
+        
+        .omr-card {
+            background: white; position: relative; font-family: 'Segoe UI', 'Arial', sans-serif;
+            padding: 40px 30px; border-radius: 12px; border: 1px solid #cbd5e1;
+            max-width: 900px; margin: 0 auto;
+        }
+        
+        .circle-omr { display: inline-block; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #0f172a; background-color: white; }
+        
+        .questoes-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 14px; }
+        .questoes-table th, .questoes-table td { border: 1px solid #94a3b8; text-align: center; padding: 10px 5px; position: relative; }
+        .questoes-table th { background-color: #f1f5f9; font-weight: 600; }
+        
+        .vertex-tl { position: absolute; top: -10px; left: -10px; background: #10b981; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
+        .vertex-tr { position: absolute; top: -10px; right: -10px; background: #3b82f6; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
+        .vertex-br { position: absolute; bottom: -10px; right: -10px; background: #ef4444; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
+        .vertex-bl { position: absolute; bottom: -10px; left: -10px; background: #f59e0b; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; border: 2px solid white; z-index: 10; }
+        
+        .instrucoes-iniciais { background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 16px; margin-bottom: 20px; font-size: 0.85rem; }
+        .instrucoes-iniciais h4 { margin: 0 0 8px 0; color: #1e40af; }
+        .instrucoes-iniciais ol { margin: 5px 0 5px 20px; padding: 0; }
+        .instrucoes-iniciais li { margin: 5px 0; }
+        
+        .cartao-preview { display: none; }
+        
+        .legenda { display: flex; gap: 20px; justify-content: center; margin-top: 10px; padding: 8px; background: #f1f5f9; border-radius: 40px; font-size: 12px; flex-wrap: wrap; }
+        .legenda-item { display: flex; align-items: center; gap: 6px; }
+        .legenda-cor { width: 16px; height: 16px; border-radius: 50%; }
+        .legenda-cor.verde { background: #10b981; }
+        .legenda-cor.vermelho { background: #ef4444; }
+        .legenda-cor.amarelo { background: #eab308; }
+        .legenda-cor.roxo { background: #8b5cf6; }
+
+        /* CABEÇALHO */
+        .rg-header-container {
+            background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
+            padding: 20px 0 18px;
+            box-shadow: 0 4px 25px rgba(21, 56, 128, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .rg-header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+        }
+
+        .rg-logo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid rgba(255, 215, 0, 0.7);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: block;
+        }
+
+        .rg-logo:hover {
+            transform: scale(1.08) rotate(-4deg);
+            box-shadow: 0 0 45px rgba(255, 215, 0, 0.6);
+        }
+
+        .rg-header-title {
+            color: #FFE484;
+            font-size: 1.9rem;
+            font-weight: 800;
+            margin-top: 12px;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 15px rgba(0, 0, 0, 0.4), 0 0 10px rgba(255, 215, 0, 0.3);
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .rg-logo { width: 75px; height: 75px; }
+            .rg-header-title { font-size: 1.4rem; margin-top: 8px; }
+            .rg-header-container { padding: 14px 0 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .rg-logo { width: 65px; height: 65px; }
+            .rg-header-title { font-size: 1.1rem; margin-top: 6px; }
+            .rg-header-container { padding: 10px 0 10px; }
+        }
+
+        /* RODAPÉ */
+        .rg-footer-container {
+            background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
+            padding: 32px 20px 28px;
+            margin-top: 40px;
+            box-shadow: 0 -4px 30px rgba(21, 56, 128, 0.4);
+            border-top: 4px solid #F7C948;
+        }
+
+        .rg-footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .rg-footer-text {
+            color: #FFE484;
+            font-size: 1.1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .rg-instagram-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(135deg, #F58529, #DD2A7B, #8134AF);
+            color: #ffffff;
+            padding: 14px 32px;
+            border-radius: 60px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 25px rgba(221, 42, 123, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .rg-instagram-btn:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 10px 40px rgba(221, 42, 123, 0.6);
+            background: linear-gradient(135deg, #F77A1A, #D1226E, #7029A8);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        @media (max-width: 600px) {
+            .rg-footer-text { font-size: 0.9rem; }
+            .rg-instagram-btn {
+                padding: 12px 24px;
+                font-size: 0.9rem;
+                gap: 10px;
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+            .rg-footer-container { padding: 20px 16px 18px; }
+        }
+
+        @media (min-width: 768px) {
+            .rg-footer-content { gap: 18px; }
+        }
+        
+        @media print { .no-print { display: none !important; } }
+        
+        .result-buttons { display: flex; gap: 10px; margin-top: 15px; justify-content: center; flex-wrap: wrap; }
+        .btn-nova-prova { background: #f97316; }
+        
+        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.8); color: white; padding: 20px; border-radius: 10px; z-index: 1000; display: none; text-align: center; }
+        .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .camera-info-banner {
+            background: #e0f2fe;
+            border-left: 5px solid #0284c7;
+            border-radius: 18px;
+            padding: 12px 16px;
+            margin: 15px 0 12px 0;
+            font-size: 0.85rem;
+            color: #0c4a6e;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .camera-info-banner strong {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 6px;
+            font-size: 0.9rem;
+        }
+        
+        .qr-status {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 12px;
+            padding: 10px 14px;
+            margin: 8px 0;
+            font-size: 0.85rem;
+            color: #166534;
+        }
+        .qr-status.error {
+            background: #fef2f2;
+            border-color: #fca5a5;
+            color: #991b1b;
+        }
+        .qr-status .highlight {
+            font-weight: 700;
+        }
+    </style>
+    <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
+    <!-- jsQR para decodificar QR codes -->
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body>
+
+<div class="loading" id="loadingIndicator">
+    <div class="loading-spinner"></div>
+    <div>🔍 Processando...</div>
+    <div style="font-size: 12px; margin-top: 5px;">Aguarde um momento</div>
+</div>
+
+<header class="rg-header-container no-print">
+    <div class="rg-header-content">
+        <img 
+            src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExa2N1cnJqbWFmb3llODF5cnl2emQzcWJhZmgzczVzYnp5cXZrbXpyciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/V9ifAFkzIJPVk1dIxO/giphy.gif" 
+            alt="Logo RG Math" 
+            class="rg-logo"
+            loading="lazy"
+        >
+        <h1 class="rg-header-title">Professor Raylton Guedes</h1>
+    </div>
+</header>
+
+<div class="container">
+    <div class="home-button-container no-print">
+        <a href="https://sites.google.com/view/rgmathprofrayltonguedes/home" target="_blank" class="btn-home" id="homeButtonWithCameraOff">🏠 HOME</a>
+    </div>
+    
+    <h1>📋 Leitor de Gabarito RG Math - QR Codes</h1>
+    
+    <div class="instrucoes-iniciais no-print">
+        <h4>📌 Como usar - DETECÇÃO AUTOMÁTICA:</h4>
+        <ol>
+            <li>Defina o <strong>Título da Prova</strong>, <strong>número de questões</strong> e <strong>alternativas</strong></li>
+            <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir os gabaritos</li>
+            <li>No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</li>
+            <li><strong>Os 4 QR codes nos cantos são detectados AUTOMATICAMENTE</strong> - não precisa clicar na imagem!</li>
+            <li>Tire uma foto do cartão preenchido ou envie uma imagem</li>
+            <li>Clique em <strong>"CORRIGIR PROVA"</strong> para ver o resultado</li>
+        </ol>
+    </div>
+    
+    <div class="config-panel no-print">
+        <div class="config-item">
+            <label>✏️ Título da Prova</label>
+            <input type="text" id="tituloProva" value="Simulado ENEM">
+        </div>
+        <div class="config-item">
+            <label>🔢 Número de questões</label>
+            <input type="number" id="numQuestoes" min="1" max="30" value="10" style="width: 80px;">
+        </div>
+        <div class="config-item">
+            <label>🔤 Alternativas</label>
+            <select id="numAlternativas">
+                <option value="2">2 (A,B)</option>
+                <option value="3">3 (A,B,C)</option>
+                <option value="4" selected>4 (A,B,C,D)</option>
+                <option value="5">5 (A,B,C,D,E)</option>
+            </select>
+        </div>
+        <div class="config-item"><button id="btnAplicarConfig" class="btn-green">Aplicar e gerar cartão</button></div>
+        <div class="config-item"><button id="btnGerarPDF" class="btn-purple">📄 GERAR PDF</button></div>
+    </div>
+    
+    <div class="cartao-preview no-print"><div id="printArea"></div></div>
+    
+    <div class="two-columns no-print">
+        <div class="column column-left-order">
+            <div class="card">
+                <div class="section-title">📸 Capturar cartão preenchido</div>
+                <video id="video" autoplay playsinline style="width:100%; border-radius: 20px;"></video>
+                
+                <div class="camera-info-banner">
+                    <strong>📷 Informações sobre a câmera</strong>
+                    <p>✅ A câmera é ativada automaticamente. Os <strong>4 QR codes</strong> nos cantos são detectados automaticamente!</p>
+                    <p>🏠 Ao clicar em HOME, a câmera será desligada.</p>
+                </div>
+                
+                <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button id="captureBtn">📷 Tirar Foto</button>
+                    <button id="toggleCameraBtn" class="btn-warning">🔴 Desligar Câmera</button>
+                    <label for="fileUpload" style="background:#475569; padding:10px 18px; border-radius:60px; color:white; cursor:pointer;">📁 Enviar Imagem</label>
+                    <input type="file" id="fileUpload" accept="image/jpeg,image/png" style="display:none;">
+                </div>
+                <canvas id="canvas" style="display:none;"></canvas>
+                
+                <div id="qrStatus" class="qr-status">
+                    ⏳ Aguardando imagem para detectar QR codes...
+                </div>
+                
+                <div class="legenda">
+                    <div class="legenda-item"><div class="legenda-cor verde"></div><span>Acertou</span></div>
+                    <div class="legenda-item"><div class="legenda-cor vermelho"></div><span>Errou</span></div>
+                    <div class="legenda-item"><div class="legenda-cor amarelo"></div><span>Não detectado</span></div>
+                    <div class="legenda-item"><div class="legenda-cor roxo"></div><span>Dupla/Anulada</span></div>
+                </div>
+            </div>
+            
+            <div class="card resultado-imagem-area">
+                <div class="section-title">🖼️ Resultado da Correção</div>
+                <canvas id="resultCanvas" style="width:100%; border-radius: 20px;"></canvas>
+                <button id="corrigirBtn" class="btn-green" style="width:100%; font-size:1.2rem; margin-top: 15px;">✨ CORRIGIR PROVA</button>
+            </div>
+        </div>
+        
+        <div class="column">
+            <div id="resultArea" class="result-area" style="display:none;">
+                <div>🎯 RESULTADO</div>
+                <div class="score" id="scoreDisplay">0/0</div>
+                <div id="gradeDetail"></div>
+                <div class="stats" id="statsArea"></div>
+                <div class="result-buttons">
+                    <button id="novaProvaBtn" class="btn-nova-prova">📝 NOVA PROVA</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="section-title">✅ Gabarito Oficial <span id="gabaritoStatus"></span></div>
+                <div id="gabaritoDinamico" class="gabarito-grid"></div>
+                <button id="resetGabaritoBtn" class="btn-secondary" style="margin-top: 16px;">🔄 Preencher todas com A</button>
+                <button id="validarGabaritoBtn" class="btn-secondary" style="margin-top: 8px;">✓ Validar preenchimento</button>
+            </div>
+        </div>
+    </div>
+    <div class="log no-print" id="logArea">⏳ Aguardando OpenCV.js...</div>
+</div>
+
+<footer class="rg-footer-container no-print">
+    <div class="rg-footer-content">
+        <span class="rg-footer-text">© 2025 RG Math - Professor Raylton Guedes</span>
+        <a 
+            href="https://www.instagram.com/rgmath_education/" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            class="rg-instagram-btn"
+            aria-label="Acompanhe o RG Math no Instagram"
+        >
+            📷 Acompanhe o RG Math no Instagram @rgmath_education
+        </a>
+    </div>
+</footer>
+
+<script>
+    // ==================== ESTADO GLOBAL ====================
+    let currentImageData = null;
+    let numQuestoes = 10;
+    let numAlternativas = 4;
+    let letras = ['A','B','C','D','E','F'];
+    let cvReady = false;
+    let cameraActive = true;
+    let stream = null;
+    
+    // Pontos serão detectados automaticamente via QR codes
+    let pontos = [
+        { x: 0.05, y: 0.05 },
+        { x: 0.95, y: 0.05 },
+        { x: 0.95, y: 0.95 },
+        { x: 0.05, y: 0.95 }
+    ];
+    let pontosDefinidos = [false, false, false, false];
+    let qrDetectados = [false, false, false, false];
+    
+    let ultimosResultados = null;
+    let ultimaImagemWarped = null;
+    
+    // Mapeamento dos QR codes para posições
+    const QR_POSITIONS = {
+        'TL': 0, // Superior Esquerdo
+        'TR': 1, // Superior Direito
+        'BR': 2, // Inferior Direito
+        'BL': 3  // Inferior Esquerdo
+    };
+    
+    // Elementos DOM
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureBtn = document.getElementById('captureBtn');
+    const toggleCameraBtn = document.getElementById('toggleCameraBtn');
+    const fileUpload = document.getElementById('fileUpload');
+    const resultCanvas = document.getElementById('resultCanvas');
+    const corrigirBtn = document.getElementById('corrigirBtn');
+    const resultArea = document.getElementById('resultArea');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const gradeDetail = document.getElementById('gradeDetail');
+    const logArea = document.getElementById('logArea');
+    const resetGabaritoBtn = document.getElementById('resetGabaritoBtn');
+    const validarGabaritoBtn = document.getElementById('validarGabaritoBtn');
+    const btnAplicarConfig = document.getElementById('btnAplicarConfig');
+    const btnGerarPDF = document.getElementById('btnGerarPDF');
+    const tituloProvaInput = document.getElementById('tituloProva');
+    const numQuestoesInput = document.getElementById('numQuestoes');
+    const numAlternativasSelect = document.getElementById('numAlternativas');
+    const gabaritoStatus = document.getElementById('gabaritoStatus');
+    const statsArea = document.getElementById('statsArea');
+    const printArea = document.getElementById('printArea');
+    const novaProvaBtn = document.getElementById('novaProvaBtn');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const qrStatus = document.getElementById('qrStatus');
+    
+    function mostrarLoading() { loadingIndicator.style.display = 'flex'; }
+    function esconderLoading() { loadingIndicator.style.display = 'none'; }
+    
+    function esperarOpenCV() {
+        if (typeof cv !== 'undefined' && cv.Mat && cv.imread) {
+            cvReady = true;
+            logArea.innerHTML = "✅ OpenCV.js carregado! Sistema pronto para uso.";
+        } else {
+            logArea.innerHTML = "⏳ Carregando OpenCV...";
+            setTimeout(esperarOpenCV, 500);
+        }
+    }
+    esperarOpenCV();
+    
+    // ==================== QR CODE DETECTION ====================
+    function detectarQRCodes(imageData) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                // Criar canvas para extrair pixels
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = img.width;
+                tempCanvas.height = img.height;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                const imageDataObj = ctx.getImageData(0, 0, img.width, img.height);
+                
+                // Usar jsQR para detectar QR codes
+                const code = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                
+                // Se detectou um QR code, usar suas coordenadas
+                if (code) {
+                    // Para detecção de múltiplos QR codes, precisamos escanear a imagem inteira
+                    // Vamos usar uma abordagem de sliding window ou simplesmente confiar no jsQR
+                    // que detecta o primeiro. Para múltiplos, faremos múltiplas chamadas.
+                    
+                    // Na prática, vamos detectar todos os QR codes na imagem
+                    const qrCodes = [];
+                    const step = 50;
+                    const size = Math.min(img.width, img.height) * 0.15;
+                    
+                    // Tentar detectar em diferentes regiões da imagem
+                    for (let y = 0; y < img.height - size; y += step) {
+                        for (let x = 0; x < img.width - size; x += step) {
+                            try {
+                                const subData = ctx.getImageData(x, y, size, size);
+                                const subCode = jsQR(subData.data, subData.width, subData.height, {
+                                    inversionAttempts: "dontInvert",
+                                });
+                                if (subCode) {
+                                    // Verificar se já não temos um QR code próximo
+                                    let isDuplicate = false;
+                                    for (const existing of qrCodes) {
+                                        const dx = existing.x - (x + subCode.location.topLeftCorner.x);
+                                        const dy = existing.y - (y + subCode.location.topLeftCorner.y);
+                                        if (Math.sqrt(dx*dx + dy*dy) < 30) {
+                                            isDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!isDuplicate) {
+                                        qrCodes.push({
+                                            x: x + subCode.location.topLeftCorner.x,
+                                            y: y + subCode.location.topLeftCorner.y,
+                                            data: subCode.data,
+                                            width: size
+                                        });
+                                    }
+                                }
+                            } catch(e) {}
+                        }
+                    }
+                    
+                    // Se não encontrou com sliding window, tenta uma abordagem mais simples
+                    if (qrCodes.length === 0) {
+                        // Tentar a detecção em toda a imagem
+                        const fullCode = jsQR(imageDataObj.data, imageDataObj.width, imageDataObj.height, {
+                            inversionAttempts: "dontInvert",
+                        });
+                        if (fullCode) {
+                            qrCodes.push({
+                                x: fullCode.location.topLeftCorner.x,
+                                y: fullCode.location.topLeftCorner.y,
+                                data: fullCode.data,
+                                width: Math.min(img.width, img.height) * 0.1
+                            });
+                        }
+                    }
+                    
+                    resolve(qrCodes);
+                } else {
+                    resolve([]);
+                }
+            };
+            img.src = imageData;
+        });
+    }
+    
+    // Função para detectar os 4 QR codes nos cantos
+    async function detectarQRCodesCantos(imageData) {
+        const img = new Image();
+        img.src = imageData;
+        await new Promise(resolve => { img.onload = resolve; });
+        
+        const tempCanvas = document.createElement('canvas');
+        tempCanvas.width = img.width;
+        tempCanvas.height = img.height;
+        const ctx = tempCanvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageDataObj = ctx.getImageData(0, 0, img.width, img.height);
+        
+        // Detectar QR codes
+        const qrCodes = [];
+        
+        // Função para detectar em uma região específica
+        function detectarRegiao(x, y, w, h) {
+            try {
+                const subData = ctx.getImageData(x, y, w, h);
+                const code = jsQR(subData.data, subData.width, subData.height, {
+                    inversionAttempts: "dontInvert",
+                });
+                if (code) {
+                    return {
+                        x: x + code.location.topLeftCorner.x,
+                        y: y + code.location.topLeftCorner.y,
+                        data: code.data,
+                        width: w
+                    };
+                }
+            } catch(e) {}
+            return null;
+        }
+        
+        // Detectar nos 4 cantos
+        const margin = Math.min(img.width, img.height) * 0.15;
+        const size = Math.min(img.width, img.height) * 0.2;
+        
+        // Canto Superior Esquerdo
+        let qrTL = detectarRegiao(0, 0, size, size);
+        if (!qrTL) {
+            // Tentar com tamanho variável
+            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
+                qrTL = detectarRegiao(0, 0, s, s);
+                if (qrTL) break;
+            }
+        }
+        
+        // Canto Superior Direito
+        let qrTR = detectarRegiao(img.width - size, 0, size, size);
+        if (!qrTR) {
+            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
+                qrTR = detectarRegiao(img.width - s, 0, s, s);
+                if (qrTR) break;
+            }
+        }
+        
+        // Canto Inferior Direito
+        let qrBR = detectarRegiao(img.width - size, img.height - size, size, size);
+        if (!qrBR) {
+            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
+                qrBR = detectarRegiao(img.width - s, img.height - s, s, s);
+                if (qrBR) break;
+            }
+        }
+        
+        // Canto Inferior Esquerdo
+        let qrBL = detectarRegiao(0, img.height - size, size, size);
+        if (!qrBL) {
+            for (let s = size * 0.5; s <= size * 1.5; s += 20) {
+                qrBL = detectarRegiao(0, img.height - s, s, s);
+                if (qrBL) break;
+            }
+        }
+        
+        const resultados = [];
+        if (qrTL) {
+            resultados.push({ pos: 'TL', x: qrTL.x, y: qrTL.y, data: qrTL.data });
+            logArea.innerHTML += `\n✅ QR code TL detectado em (${Math.round(qrTL.x)}, ${Math.round(qrTL.y)})`;
+        }
+        if (qrTR) {
+            resultados.push({ pos: 'TR', x: qrTR.x, y: qrTR.y, data: qrTR.data });
+            logArea.innerHTML += `\n✅ QR code TR detectado em (${Math.round(qrTR.x)}, ${Math.round(qrTR.y)})`;
+        }
+        if (qrBR) {
+            resultados.push({ pos: 'BR', x: qrBR.x, y: qrBR.y, data: qrBR.data });
+            logArea.innerHTML += `\n✅ QR code BR detectado em (${Math.round(qrBR.x)}, ${Math.round(qrBR.y)})`;
+        }
+        if (qrBL) {
+            resultados.push({ pos: 'BL', x: qrBL.x, y: qrBL.y, data: qrBL.data });
+            logArea.innerHTML += `\n✅ QR code BL detectado em (${Math.round(qrBL.x)}, ${Math.round(qrBL.y)})`;
+        }
+        
+        return resultados;
+    }
+    
+    // ==================== CÂMERA ====================
+    async function iniciarCamera() {
+        if (stream) desligarCamera();
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } });
+            video.srcObject = stream;
+            await video.play();
+            cameraActive = true;
+            toggleCameraBtn.textContent = "🔴 Desligar Câmera";
+            logArea.innerHTML += "\n📷 Câmera ativada!";
+        } catch (err) {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = stream;
+                await video.play();
+                cameraActive = true;
+                toggleCameraBtn.textContent = "🔴 Desligar Câmera";
+                logArea.innerHTML += "\n📷 Câmera ativada!";
+            } catch (e) {
+                logArea.innerHTML += "\n❌ Erro câmera: " + e.message;
+                cameraActive = false;
+                toggleCameraBtn.textContent = "🟢 Ligar Câmera";
+            }
+        }
+    }
+    
+    function desligarCamera() {
+        if (stream) { stream.getTracks().forEach(track => track.stop()); stream = null; }
+        if (video) video.srcObject = null;
+        cameraActive = false;
+        toggleCameraBtn.textContent = "🟢 Ligar Câmera";
+        logArea.innerHTML += "\n🔴 Câmera desligada.";
+    }
+    
+    function toggleCamera() { cameraActive ? desligarCamera() : iniciarCamera(); }
+    
+    // ==================== PROCESSAMENTO DE IMAGEM ====================
+    async function capturarFoto() {
+        if (!cameraActive || !stream || !video.videoWidth) {
+            alert("Câmera não está ativa! Clique em 'Ligar Câmera' primeiro.");
+            return;
+        }
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0);
+        const imageData = canvas.toDataURL('image/jpeg', 0.9);
+        await processarImagem(imageData);
+        logArea.innerHTML += "\n📸 Foto capturada!";
+    }
+    
+    function carregarUpload(file) { 
+        if (!file) return; 
+        const reader = new FileReader(); 
+        reader.onload = async (e) => {
+            await processarImagem(e.target.result);
+        };
+        reader.readAsDataURL(file); 
+    }
+    
+    async function processarImagem(imageData) { 
+        currentImageData = imageData;
+        
+        // Mostrar a imagem no canvas de resultado
+        const img = new Image();
+        img.src = imageData;
+        await new Promise(resolve => { img.onload = resolve; });
+        
+        const ctx = resultCanvas.getContext('2d');
+        resultCanvas.width = img.width;
+        resultCanvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // Resetar pontos
+        pontos = [
+            { x: 0.05, y: 0.05 },
+            { x: 0.95, y: 0.05 },
+            { x: 0.95, y: 0.95 },
+            { x: 0.05, y: 0.95 }
+        ];
+        pontosDefinidos = [false, false, false, false];
+        qrDetectados = [false, false, false, false];
+        
+        // Tentar detectar QR codes automaticamente
+        qrStatus.textContent = '🔍 Detectando QR codes nos cantos...';
+        qrStatus.className = 'qr-status';
+        
+        try {
+            const qrResults = await detectarQRCodesCantos(imageData);
+            
+            if (qrResults.length >= 4) {
+                // Organizar os QR codes por posição
+                const posMap = {};
+                for (const qr of qrResults) {
+                    posMap[qr.pos] = qr;
+                }
+                
+                // Definir os pontos com base nas posições dos QR codes
+                const ordem = ['TL', 'TR', 'BR', 'BL'];
+                let todosDetectados = true;
+                
+                for (let i = 0; i < ordem.length; i++) {
+                    const pos = ordem[i];
+                    if (posMap[pos]) {
+                        const qr = posMap[pos];
+                        // Converter coordenadas para proporção
+                        pontos[i] = {
+                            x: qr.x / resultCanvas.width,
+                            y: qr.y / resultCanvas.height
+                        };
+                        pontosDefinidos[i] = true;
+                        qrDetectados[i] = true;
+                        logArea.innerHTML += `\n✅ QR code ${pos} detectado automaticamente!`;
+                    } else {
+                        todosDetectados = false;
+                        logArea.innerHTML += `\n⚠️ QR code ${pos} NÃO detectado.`;
+                    }
+                }
+                
+                if (todosDetectados) {
+                    qrStatus.textContent = '✅ Todos os 4 QR codes detectados! Pronto para corrigir.';
+                    qrStatus.className = 'qr-status';
+                } else {
+                    qrStatus.textContent = '⚠️ Alguns QR codes não foram detectados. Verifique a imagem.';
+                    qrStatus.className = 'qr-status error';
+                }
+            } else if (qrResults.length > 0) {
+                qrStatus.textContent = `⚠️ Apenas ${qrResults.length} QR code(s) detectado(s). São necessários 4.`;
+                qrStatus.className = 'qr-status error';
+                logArea.innerHTML += `\n⚠️ Apenas ${qrResults.length} QR code(s) detectado(s)`;
+            } else {
+                qrStatus.textContent = '❌ Nenhum QR code detectado. Verifique se a imagem está nítida e com boa iluminação.';
+                qrStatus.className = 'qr-status error';
+                logArea.innerHTML += '\n❌ Nenhum QR code detectado!';
+            }
+        } catch (err) {
+            qrStatus.textContent = '❌ Erro ao detectar QR codes: ' + err.message;
+            qrStatus.className = 'qr-status error';
+            logArea.innerHTML += `\n❌ Erro na detecção: ${err.message}`;
+        }
+        
+        // Desenhar a imagem com os pontos
+        desenharPontosNaImagem();
+        
+        logArea.innerHTML += "\n📸 Imagem carregada. QR codes detectados automaticamente!";
+    }
+    
+    function desenharPontosNaImagem() {
+        if (!currentImageData) return;
+        
+        const img = new Image();
+        img.src = currentImageData;
+        img.onload = () => {
+            const ctx = resultCanvas.getContext('2d');
+            resultCanvas.width = img.width;
+            resultCanvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            
+            // Desenhar os pontos detectados
+            const cores = ['#10b981', '#3b82f6', '#ef4444', '#f59e0b'];
+            const labels = ['TL', 'TR', 'BR', 'BL'];
+            
+            for (let i = 0; i < pontos.length; i++) {
+                const x = pontos[i].x * resultCanvas.width;
+                const y = pontos[i].y * resultCanvas.height;
+                
+                // Círculo
+                ctx.beginPath();
+                ctx.arc(x, y, 15, 0, 2 * Math.PI);
+                ctx.fillStyle = pontosDefinidos[i] ? cores[i] + '80' : 'rgba(239,68,68,0.5)';
+                ctx.fill();
+                ctx.strokeStyle = pontosDefinidos[i] ? cores[i] : '#ef4444';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Label
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(labels[i], x, y);
+                
+                // Status QR
+                if (qrDetectados[i]) {
+                    ctx.fillStyle = '#10b981';
+                    ctx.font = '12px Arial';
+                    ctx.fillText('✓', x + 20, y - 20);
+                }
+            }
+        };
+    }
+    
+    // ==================== FUNÇÕES DO GABARITO ====================
+    function gerarCartaoOMR(titulo, qtd, altCount) {
+        const letrasUsadas = letras.slice(0, altCount);
+        const indexA = 0;
+        const indexD = altCount >= 4 ? 3 : altCount - 1;
+        
+        let html = `<div class="omr-card"><h2 style="text-align:center;">${titulo}</h2>
+            <div style="display:flex; justify-content:space-between; margin:20px 0; padding:8px 0; border-top:1px solid #ccc; border-bottom:1px solid #ccc;">
+                <div><strong>NOME:</strong> _________________________</div>
+                <div><strong>DATA:</strong> ___/___/_____</div>
+                <div><strong>TURMA:</strong> ________</div>
+            </div>
+            <div style="background:#fef3c7; padding:8px; border-radius:40px; text-align:center; margin:15px 0;">📌 PREENCHA COMPLETAMENTE O CÍRCULO com caneta AZUL ou PRETA</div>
+            <table class="questoes-table"><thead><tr><th>Questão</th>`;
+        for (let l of letrasUsadas) html += `<th>${l}</th>`;
+        html += `</thead><tbody>`;
+        
+        for (let i = 1; i <= qtd; i++) {
+            html += `<tr><td style="font-weight:bold;">${i}</td>`;
+            for (let j = 0; j < altCount; j++) {
+                let vertexHtml = "";
+                // QR codes nos cantos - usando pequenos quadrados com padrão de QR
+                if (i === 1 && j === indexA) vertexHtml = `<div class="vertex-tl" style="font-size:10px;">⬛</div>`;
+                if (i === 1 && j === indexD) vertexHtml = `<div class="vertex-tr" style="font-size:10px;">⬛</div>`;
+                if (i === qtd && j === altCount - 1) vertexHtml = `<div class="vertex-br" style="font-size:10px;">⬛</div>`;
+                if (i === qtd && j === 0) vertexHtml = `<div class="vertex-bl" style="font-size:10px;">⬛</div>`;
+                html += `<td style="position:relative;"><div class="circle-omr"></div>${vertexHtml}</td>`;
+            }
+            html += `</tr>`;
+        }
+        html += `</tbody></table></div>`;
+        return html;
+    }
+    
+    function atualizarCartaoVisual() {
+        let titulo = tituloProvaInput.value.trim() || "Simulado ENEM";
+        numQuestoes = parseInt(numQuestoesInput.value, 10);
+        numAlternativas = parseInt(numAlternativasSelect.value, 10);
+        if (isNaN(numQuestoes)) numQuestoes = 10;
+        if (isNaN(numAlternativas)) numAlternativas = 4;
+        numQuestoes = Math.min(30, Math.max(1, numQuestoes));
+        numAlternativas = Math.min(6, Math.max(2, numAlternativas));
+        printArea.innerHTML = gerarCartaoOMR(titulo, numQuestoes, numAlternativas);
+        gerarInterfaceGabarito();
+        atualizarStatusGabarito();
+    }
+    
+    function gerarPDF() {
+        const conteudo = printArea.innerHTML;
+        const titulo = tituloProvaInput.value.trim() || "Gabarito";
+        if (!conteudo || conteudo.trim() === "") { alert("Erro: Nenhum conteúdo!"); return; }
+        const win = window.open('', '_blank');
+        win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo} - Gabarito</title>
+            <style>
+                * { margin:0; padding:0; box-sizing:border-box; }
+                body { font-family: 'Segoe UI', Arial, sans-serif; padding:20px; background:white; }
+                .omr-card { background:white; padding:40px 30px; border:1px solid #000; max-width:900px; margin:0 auto; }
+                .circle-omr { display:inline-block; width:26px; height:26px; border-radius:50%; border:2px solid #000; background:white; }
+                .questoes-table { width:100%; border-collapse:collapse; margin:20px 0; }
+                .questoes-table th, .questoes-table td { border:1px solid #000; padding:8px; text-align:center; position:relative; }
+                h2 { text-align:center; }
+                .vertex-tl { position:absolute; top:-10px; left:-10px; background:#10b981; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
+                .vertex-tr { position:absolute; top:-10px; right:-10px; background:#3b82f6; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
+                .vertex-br { position:absolute; bottom:-10px; right:-10px; background:#ef4444; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
+                .vertex-bl { position:absolute; bottom:-10px; left:-10px; background:#f59e0b; color:white; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px; border:2px solid white; }
+                @media print { body { padding:0; } .vertex-tl, .vertex-tr, .vertex-br, .vertex-bl { print-color-adjust: exact; } }
+            </style></head><body>${conteudo}<script>window.onload=function(){window.print();setTimeout(function(){window.close();},500);};<\/script></body></html>`);
+        win.document.close();
+    }
+    
+    function gerarInterfaceGabarito() {
+        const container = document.getElementById('gabaritoDinamico');
+        container.innerHTML = '';
+        const table = document.createElement('table');
+        table.className = 'gabarito-table';
+        let letrasUsadas = letras.slice(0, numAlternativas);
+        let thead = table.createTHead();
+        let headerRow = thead.insertRow();
+        headerRow.insertCell().innerText = 'Questão';
+        for (let l of letrasUsadas) headerRow.insertCell().innerText = l;
+        let tbody = table.createTBody();
+        for (let i = 1; i <= numQuestoes; i++) {
+            let row = tbody.insertRow();
+            row.insertCell().innerText = i;
+            for (let alt of letrasUsadas) {
+                let cell = row.insertCell();
+                let select = document.createElement('select');
+                select.innerHTML = `<option value="">-</option>${letrasUsadas.map(a => `<option value="${a}">${a}</option>`).join('')}`;
+                select.addEventListener('change', () => atualizarStatusGabarito());
+                cell.appendChild(select);
+            }
+        }
+        container.appendChild(table);
+        atualizarStatusGabarito();
+    }
+    
+    function atualizarStatusGabarito() {
+        const gabarito = obterGabaritoDaTela();
+        const faltam = numQuestoes - Object.keys(gabarito).length;
+        if (faltam === 0) gabaritoStatus.innerHTML = '<span style="color:#10b981;">✓ Todas preenchidas</span>';
+        else gabaritoStatus.innerHTML = `<span style="color:#eab308;">⚠️ ${faltam} questão(ões) sem gabarito</span>`;
+    }
+    
+    function obterGabaritoDaTela() {
+        let gabarito = {};
+        const linhas = document.querySelectorAll('#gabaritoDinamico table tbody tr');
+        for (let i = 0; i < linhas.length; i++) {
+            const selects = linhas[i].querySelectorAll('select');
+            for (let select of selects) {
+                let valor = select.value.trim();
+                if (valor && valor !== "") { gabarito[i+1] = valor; break; }
+            }
+        }
+        return gabarito;
+    }
+    
+    function preencherTodasA() {
+        const selects = document.querySelectorAll('#gabaritoDinamico select');
+        selects.forEach((select) => { const optionA = select.querySelector('option[value="A"]'); if (optionA) select.value = 'A'; });
+        atualizarStatusGabarito();
+        logArea.innerHTML += "\n📋 Gabarito preenchido com todas 'A'";
+    }
+    
+    // ==================== CORREÇÃO ====================
+    async function executarCorrecao() {
+        if (!currentImageData) { alert("Nenhuma imagem."); return; }
+        if (!pontosDefinidos.every(v => v === true)) { 
+            alert("Os 4 QR codes não foram detectados. Verifique a imagem.");
+            return;
+        }
+        const gabarito = obterGabaritoDaTela();
+        if (Object.keys(gabarito).length === 0) { alert("Preencha o gabarito!"); return; }
+        if (!cvReady) { alert("Aguarde OpenCV."); return; }
+        
+        mostrarLoading();
+        logArea.innerHTML += "\n🔍 Corrigindo prova...";
+        
+        try {
+            let img = new Image(); 
+            img.src = currentImageData;
+            await new Promise((resolve) => { img.onload = resolve; });
+            
+            let src = cv.imread(img);
+            
+            let scale = 1;
+            let maxDim = 1000;
+            if (src.cols > maxDim || src.rows > maxDim) {
+                scale = maxDim / Math.max(src.cols, src.rows);
+                let newWidth = Math.floor(src.cols * scale);
+                let newHeight = Math.floor(src.rows * scale);
+                let resized = new cv.Mat();
+                cv.resize(src, resized, new cv.Size(newWidth, newHeight));
+                src.delete();
+                src = resized;
+            }
+            
+            let ptsAbs = pontos.map(p => ({ x: p.x * src.cols, y: p.y * src.rows }));
+            
+            const DW = 800, DH = 1000;
+            
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                ptsAbs[0].x, ptsAbs[0].y, ptsAbs[1].x, ptsAbs[1].y,
+                ptsAbs[2].x, ptsAbs[2].y, ptsAbs[3].x, ptsAbs[3].y
+            ]);
+            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, DW, 0, DW, DH, 0, DH]);
+            let M = cv.getPerspectiveTransform(srcTri, dstTri);
+            let warped = new cv.Mat();
+            cv.warpPerspective(src, warped, M, new cv.Size(DW, DH));
+            
+            let gray = new cv.Mat();
+            cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
+            
+            let binary = new cv.Mat();
+            cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+            
+            const rows = numQuestoes, cols = numAlternativas;
+            let cellHeight = DH / rows;
+            let cellWidth = DW / cols;
+            let marginX = cellWidth * 0.15;
+            let marginY = cellHeight * 0.15;
+            let innerWidth = cellWidth - (marginX * 2);
+            let innerHeight = cellHeight - (marginY * 2);
+            
+            let respostasAluno = {};
+            let posicoes = {};
+            let statusQuestao = {};
+            
+            for (let r = 0; r < rows; r++) {
+                let contagens = [];
+                let centroids = [];
+                
+                for (let c = 0; c < cols; c++) {
+                    let x = c * cellWidth + marginX;
+                    let y = r * cellHeight + marginY;
+                    
+                    if (x + innerWidth > DW) x = DW - innerWidth;
+                    if (y + innerHeight > DH) y = DH - innerHeight;
+                    
+                    let cell = binary.roi(new cv.Rect(Math.floor(x), Math.floor(y), Math.floor(innerWidth), Math.floor(innerHeight)));
+                    let nz = cv.countNonZero(cell);
+                    let area = innerWidth * innerHeight;
+                    let fillPercent = nz / area;
+                    
+                    if (fillPercent > 0.05) {
+                        let moments = cv.moments(cell);
+                        if (moments.m00 > 0) {
+                            let cx = x + (moments.m10 / moments.m00);
+                            let cy = y + (moments.m01 / moments.m00);
+                            centroids.push({ c, cx, cy, fillPercent });
+                        }
+                    }
+                    
+                    contagens.push(fillPercent);
+                    cell.delete();
+                }
+                
+                let melhorAlt = 0;
+                let melhorFill = 0;
+                let segundaMelhor = 0;
+                
+                for (let i = 0; i < contagens.length; i++) {
+                    if (contagens[i] > melhorFill) {
+                        segundaMelhor = melhorFill;
+                        melhorFill = contagens[i];
+                        melhorAlt = i;
+                    } else if (contagens[i] > segundaMelhor) {
+                        segundaMelhor = contagens[i];
+                    }
+                }
+                
+                statusQuestao[r+1] = 'nao_detectado';
+                
+                if (melhorFill >= 0.05) {
+                    if (segundaMelhor >= 0.05 && (segundaMelhor / melhorFill) > 0.65) {
+                        statusQuestao[r+1] = 'marcacao_dupla';
+                        logArea.innerHTML += `\n⚠️ Q${r+1}: Marcação dupla - ANULADA`;
+                    } else {
+                        let letra = letras[melhorAlt];
+                        respostasAluno[r+1] = letra;
+                        statusQuestao[r+1] = 'marcado';
+                        let found = centroids.find(c => c.c === melhorAlt);
+                        if (found) {
+                            posicoes[r+1] = { x: found.cx, y: found.cy, letra: letra };
+                        } else {
+                            posicoes[r+1] = { x: (melhorAlt * cellWidth) + (cellWidth/2), y: (r * cellHeight) + (cellHeight/2), letra: letra };
+                        }
+                        logArea.innerHTML += `\n✓ Q${r+1}: Detectado ${letra} (${Math.round(melhorFill*100)}%)`;
+                    }
+                } else {
+                    logArea.innerHTML += `\n⚠️ Q${r+1}: Não detectado`;
+                }
+            }
+            
+            let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
+            let marcacoes = [];
+            
+            for (let i = 1; i <= numQuestoes; i++) {
+                let resultado = 'nao_detectado';
+                let marcado = '?';
+                
+                if (statusQuestao[i] === 'marcado' && respostasAluno[i]) {
+                    marcado = respostasAluno[i];
+                    if (gabarito[i] && gabarito[i] !== "") {
+                        if (gabarito[i] === respostasAluno[i]) {
+                            resultado = 'acertou';
+                            acertos++;
+                        } else {
+                            resultado = 'errou';
+                            erros++;
+                        }
+                    } else {
+                        resultado = 'errou';
+                        erros++;
+                    }
+                } else if (statusQuestao[i] === 'marcacao_dupla') {
+                    resultado = 'marcacao_dupla';
+                    marcado = '⚠️ DUPLA';
+                    duplas++;
+                } else {
+                    resultado = 'nao_detectado';
+                    marcado = '?';
+                    naoDetectados++;
+                }
+                
+                if (posicoes[i]) {
+                    marcacoes.push({ x: posicoes[i].x, y: posicoes[i].y, marcado: marcado, resultado: resultado });
+                } else {
+                    marcacoes.push({ x: DW/2, y: ((i-1)*cellHeight)+(cellHeight/2), marcado: marcado, resultado: resultado });
+                }
+            }
+            
+            ultimosResultados = { marcacoes, acertos, erros, duplas, naoDetectados };
+            
+            let canvasWarp = document.createElement('canvas');
+            canvasWarp.width = warped.cols;
+            canvasWarp.height = warped.rows;
+            cv.imshow(canvasWarp, warped);
+            ultimaImagemWarped = canvasWarp.toDataURL('image/jpeg', 0.9);
+            desenharResultadoNaImagem();
+            
+            let percentual = (acertos / numQuestoes) * 100;
+            let nota = (acertos/numQuestoes*10).toFixed(1);
+            scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
+            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} marcação(ões) dupla(as)<br>⚪ ${naoDetectados} não detectado(s)`;
+            statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
+                <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
+            resultArea.style.display = 'block';
+            
+            src.delete(); srcTri.delete(); dstTri.delete(); M.delete(); warped.delete(); gray.delete(); binary.delete();
+        } catch(err) {
+            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
+            alert(`Erro: ${err.message}`);
+        } finally {
+            esconderLoading();
+        }
+    }
+    
+    function desenharResultadoNaImagem() {
+        if (!ultimaImagemWarped) {
+            if (currentImageData) {
+                let img = new Image();
+                img.onload = () => {
+                    const ctx = resultCanvas.getContext('2d');
+                    resultCanvas.width = img.width;
+                    resultCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    // Desenhar os pontos QR detectados
+                    for (let i = 0; i < pontos.length; i++) {
+                        const x = pontos[i].x * resultCanvas.width;
+                        const y = pontos[i].y * resultCanvas.height;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 12, 0, 2 * Math.PI);
+                        ctx.fillStyle = pontosDefinidos[i] ? 'rgba(16,185,129,0.7)' : 'rgba(239,68,68,0.7)';
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.fillText(['TL','TR','BR','BL'][i], x-5, y+6);
+                    }
+                };
+                img.src = currentImageData;
+            }
+            return;
+        }
+        let img = new Image();
+        img.onload = () => {
+            const ctx = resultCanvas.getContext('2d');
+            resultCanvas.width = img.width;
+            resultCanvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            if (ultimosResultados) {
+                for (let i = 0; i < ultimosResultados.marcacoes.length; i++) {
+                    const marc = ultimosResultados.marcacoes[i];
+                    let cor = '#eab308';
+                    if (marc.resultado === 'acertou') cor = '#10b981';
+                    else if (marc.resultado === 'errou') cor = '#ef4444';
+                    else if (marc.resultado === 'marcacao_dupla') cor = '#8b5cf6';
+                    
+                    ctx.beginPath();
+                    ctx.arc(marc.x, marc.y, 18, 0, 2 * Math.PI);
+                    ctx.fillStyle = cor + '60';
+                    ctx.fill();
+                    ctx.strokeStyle = cor;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.fillStyle = cor;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(marc.marcado, marc.x, marc.y);
+                }
+            }
+        };
+        img.src = ultimaImagemWarped;
+    }
+    
+    function resetarCorrecao() {
+        currentImageData = null;
+        ultimosResultados = null;
+        ultimaImagemWarped = null;
+        pontos = [
+            { x: 0.05, y: 0.05 },
+            { x: 0.95, y: 0.05 },
+            { x: 0.95, y: 0.95 },
+            { x: 0.05, y: 0.95 }
+        ];
+        pontosDefinidos = [false, false, false, false];
+        qrDetectados = [false, false, false, false];
+        resultArea.style.display = 'none';
+        const ctx = resultCanvas.getContext('2d');
+        ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        qrStatus.textContent = '⏳ Aguardando nova imagem para detectar QR codes...';
+        qrStatus.className = 'qr-status';
+        logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova! O gabarito oficial foi mantido.";
+        alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.\n\nTire uma nova foto ou envie outra imagem.");
+    }
+    
+    // ==================== EVENTOS ====================
+    captureBtn.addEventListener('click', capturarFoto);
+    toggleCameraBtn.addEventListener('click', toggleCamera);
+    fileUpload.addEventListener('change', (e) => { if(e.target.files[0]) carregarUpload(e.target.files[0]); });
+    corrigirBtn.addEventListener('click', executarCorrecao);
+    btnAplicarConfig.addEventListener('click', atualizarCartaoVisual);
+    btnGerarPDF.addEventListener('click', gerarPDF);
+    novaProvaBtn.addEventListener('click', resetarCorrecao);
+    resetGabaritoBtn.addEventListener('click', preencherTodasA);
+    validarGabaritoBtn.addEventListener('click', () => { const g = obterGabaritoDaTela(); alert(`Gabarito: ${Object.keys(g).length}/${numQuestoes} questões preenchidas`); });
+    
+    const homeButton = document.getElementById('homeButtonWithCameraOff');
+    if (homeButton) {
+        homeButton.addEventListener('click', (e) => {
+            desligarCamera();
+        });
+    }
+    
+    // ==================== INICIALIZAÇÃO ====================
+    iniciarCamera();
+    atualizarCartaoVisual();
+</script>
+</body>
+</html>
