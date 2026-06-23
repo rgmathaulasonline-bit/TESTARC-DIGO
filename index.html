@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Leitor de Gabarito RG Math - Profissional</title>
+    <title>Leitor de Gabarito RG Math - V3</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
         body { background: #eef2f5; margin: 0; padding: 20px; }
@@ -84,6 +84,7 @@
         .legenda-cor.roxo { background: #8b5cf6; }
         .legenda-cor.azul { background: #3b82f6; }
         .legenda-cor.laranja { background: #f97316; }
+        .legenda-cor.cinza { background: #94a3b8; }
 
         .rg-header-container {
             background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
@@ -304,10 +305,20 @@
             padding: 8px;
             background: #f1f5f9;
             border-radius: 8px;
-            max-height: 150px;
+            max-height: 200px;
             overflow-y: auto;
             font-family: monospace;
             white-space: pre-wrap;
+        }
+        
+        .filtro-info {
+            font-size: 0.8rem;
+            color: #475569;
+            padding: 6px 12px;
+            background: #f1f5f9;
+            border-radius: 20px;
+            display: inline-block;
+            margin: 4px;
         }
     </style>
     <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
@@ -317,7 +328,7 @@
 <div class="loading" id="loadingIndicator">
     <div class="loading-spinner"></div>
     <div>🔍 Processando com OpenCV...</div>
-    <div style="font-size: 12px; margin-top: 5px;">Detectando folha e corrigindo perspectiva</div>
+    <div style="font-size: 12px; margin-top: 5px;">Detectando bolhas na tabela</div>
 </div>
 
 <header class="rg-header-container no-print">
@@ -337,16 +348,16 @@
         <a href="https://sites.google.com/view/rgmathprofrayltonguedes/home" target="_blank" class="btn-home" id="homeButtonWithCameraOff">🏠 HOME</a>
     </div>
     
-    <h1>📋 Leitor de Gabarito RG Math - Profissional</h1>
+    <h1>📋 Leitor de Gabarito RG Math - V3</h1>
     
     <div class="instrucoes-iniciais no-print">
-        <h4>📌 Como usar - LEITURA PROFISSIONAL:</h4>
+        <h4>📌 Como usar - LEITURA OTIMIZADA:</h4>
         <ol>
             <li>Defina o <strong>Título da Prova</strong>, <strong>número de questões</strong> e <strong>alternativas</strong></li>
             <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir</li>
             <li>No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</li>
             <li>Tire uma foto do cartão preenchido ou envie uma imagem</li>
-            <li><strong>O sistema detecta automaticamente</strong> a folha, corrige a perspectiva e localiza a tabela</li>
+            <li><strong>O sistema detecta a tabela automaticamente</strong> e filtra apenas as bolhas preenchidas</li>
             <li><strong>Regras:</strong> 
                 <ul>
                     <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha</li>
@@ -390,7 +401,7 @@
                 
                 <div class="camera-info-banner">
                     <strong>📷 Informações sobre a câmera</strong>
-                    <p>✅ A câmera é ativada automaticamente. O sistema detecta a folha e corrige a perspectiva.</p>
+                    <p>✅ A câmera é ativada automaticamente. O sistema filtra apenas as bolhas preenchidas.</p>
                     <p>🏠 Ao clicar em HOME, a câmera será desligada.</p>
                 </div>
                 
@@ -410,13 +421,21 @@
                     <div class="fill" id="progressFill"></div>
                 </div>
                 
+                <div>
+                    <span class="filtro-info">🔵 Bolhas detectadas</span>
+                    <span class="filtro-info">🟢 Marcações válidas</span>
+                    <span class="filtro-info">🟣 Marcações duplas</span>
+                    <span class="filtro-info">⚪ Filtro por região</span>
+                </div>
+                
                 <div class="legenda">
                     <div class="legenda-item"><div class="legenda-cor verde"></div><span>Acertou</span></div>
                     <div class="legenda-item"><div class="legenda-cor vermelho"></div><span>Errou</span></div>
                     <div class="legenda-item"><div class="legenda-cor amarelo"></div><span>Não detectado</span></div>
                     <div class="legenda-item"><div class="legenda-cor roxo"></div><span>Dupla/Anulada</span></div>
-                    <div class="legenda-item"><div class="legenda-cor azul"></div><span>Marcação detectada</span></div>
-                    <div class="legenda-item"><div class="legenda-cor laranja"></div><span>Grid de leitura</span></div>
+                    <div class="legenda-item"><div class="legenda-cor azul"></div><span>Bolha detectada</span></div>
+                    <div class="legenda-item"><div class="legenda-cor laranja"></div><span>Grid da tabela</span></div>
+                    <div class="legenda-item"><div class="legenda-cor cinza"></div><span>Filtrado (descartado)</span></div>
                 </div>
             </div>
             
@@ -485,6 +504,12 @@
     let mostrarGrid = false;
     let mostrarDebug = false;
     let dadosProcessamento = null;
+    
+    // CONSTANTES DE FILTRAGEM
+    const MIN_FILL_RATIO = 0.35;      // Mínimo de preenchimento para considerar uma bolha
+    const MAX_FILL_RATIO = 0.95;      // Máximo de preenchimento (evita áreas totalmente pretas)
+    const MIN_CIRCLE_AREA = 30;       // Área mínima em pixels
+    const REGION_MARGIN = 0.08;       // Margem para recorte da tabela (8% em cada lado)
     
     // Elementos DOM
     const video = document.getElementById('video');
@@ -593,20 +618,16 @@
                         cv.cvtColor(src, srcGray, cv.COLOR_RGBA2GRAY);
                         
                         // ==================== 1. DETECTAR A FOLHA ====================
-                        // Aplicar blur para reduzir ruído
                         let blurred = new cv.Mat();
                         cv.GaussianBlur(srcGray, blurred, new cv.Size(5, 5), 0);
                         
-                        // Detectar bordas com Canny
                         let edges = new cv.Mat();
                         cv.Canny(blurred, edges, 50, 150, 3);
                         
-                        // Encontrar contornos
                         let contours = new cv.MatVector();
                         let hierarchy = new cv.Mat();
                         cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
                         
-                        // Encontrar o maior contorno (a folha)
                         let maxArea = 0;
                         let maxContourIndex = -1;
                         const imgArea = src.rows * src.cols;
@@ -614,8 +635,7 @@
                         for (let i = 0; i < contours.size(); i++) {
                             let contour = contours.get(i);
                             let area = cv.contourArea(contour);
-                            // Filtrar por área (pelo menos 20% da imagem)
-                            if (area > imgArea * 0.2 && area > maxArea) {
+                            if (area > imgArea * 0.15 && area > maxArea) {
                                 maxArea = area;
                                 maxContourIndex = i;
                             }
@@ -625,16 +645,14 @@
                         let pontosFolha = null;
                         let warped = null;
                         let M = null;
+                        let tabelaRect = null;
                         
                         if (maxContourIndex >= 0) {
                             let contour = contours.get(maxContourIndex);
-                            
-                            // Aproximar o contorno para um polígono
                             let epsilon = 0.02 * cv.arcLength(contour, true);
                             let approx = new cv.Mat();
                             cv.approxPolyDP(contour, approx, epsilon, true);
                             
-                            // Se tem 4 vértices, é um retângulo
                             if (approx.rows === 4) {
                                 folhaEncontrada = true;
                                 pontosFolha = [];
@@ -644,7 +662,6 @@
                                     pontosFolha.push({x, y});
                                 }
                                 
-                                // Ordenar pontos: superior-esquerdo, superior-direito, inferior-direito, inferior-esquerdo
                                 pontosFolha.sort((a, b) => a.y - b.y);
                                 let top = pontosFolha.slice(0, 2);
                                 let bottom = pontosFolha.slice(2);
@@ -652,7 +669,6 @@
                                 bottom.sort((a, b) => a.x - b.x);
                                 pontosFolha = [top[0], top[1], bottom[1], bottom[0]];
                                 
-                                // Corrigir perspectiva
                                 let srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
                                     pontosFolha[0].x, pontosFolha[0].y,
                                     pontosFolha[1].x, pontosFolha[1].y,
@@ -673,16 +689,19 @@
                                 warped = new cv.Mat();
                                 cv.warpPerspective(src, warped, M, new cv.Size(dstWidth, dstHeight));
                                 
+                                // ==================== 2. DETECTAR A TABELA ====================
+                                // Encontrar a tabela dentro da folha
+                                tabelaRect = encontrarTabela(warped);
+                                
                                 srcPoints.delete();
                                 dstPoints.delete();
                             }
                             approx.delete();
                         }
                         
-                        // Se não encontrou a folha, usar a imagem original redimensionada
+                        // Se não encontrou a folha, usar a imagem original
                         if (!folhaEncontrada || !warped) {
                             logArea.innerHTML += "\n⚠️ Folha não detectada, usando imagem original";
-                            // Redimensionar para um tamanho padrão
                             let maxDim = 1000;
                             let scale = 1;
                             if (src.rows > maxDim || src.cols > maxDim) {
@@ -692,28 +711,100 @@
                             let newH = Math.floor(src.rows * scale);
                             warped = new cv.Mat();
                             cv.resize(src, warped, new cv.Size(newW, newH));
+                            
+                            // Tentar encontrar a tabela na imagem redimensionada
+                            tabelaRect = encontrarTabela(warped);
                         }
                         
-                        // ==================== 2. DETECTAR A TABELA ====================
-                        // Converter para escala de cinza e binarizar
-                        let grayWarped = new cv.Mat();
-                        cv.cvtColor(warped, grayWarped, cv.COLOR_RGBA2GRAY);
+                        // ==================== 3. EXTRAIR APENAS A REGIÃO DA TABELA ====================
+                        let tabelaMat = null;
+                        let tabelaX = 0, tabelaY = 0, tabelaW = 0, tabelaH = 0;
                         
-                        let binary = new cv.Mat();
-                        cv.threshold(grayWarped, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+                        if (tabelaRect) {
+                            // Adicionar uma pequena margem
+                            const margin = Math.min(tabelaRect.w, tabelaRect.h) * 0.02;
+                            tabelaX = Math.max(0, tabelaRect.x - margin);
+                            tabelaY = Math.max(0, tabelaRect.y - margin);
+                            tabelaW = Math.min(warped.cols - tabelaX, tabelaRect.w + margin * 2);
+                            tabelaH = Math.min(warped.rows - tabelaY, tabelaRect.h + margin * 2);
+                            
+                            tabelaMat = warped.roi(new cv.Rect(
+                                Math.floor(tabelaX), 
+                                Math.floor(tabelaY), 
+                                Math.floor(tabelaW), 
+                                Math.floor(tabelaH)
+                            ));
+                        } else {
+                            // Fallback: usar a imagem inteira, mas com margem para ignorar cabeçalho
+                            const marginTop = warped.rows * 0.20; // 20% superior é cabeçalho
+                            tabelaX = 0;
+                            tabelaY = Math.floor(marginTop);
+                            tabelaW = warped.cols;
+                            tabelaH = warped.rows - tabelaY;
+                            
+                            tabelaMat = warped.roi(new cv.Rect(
+                                Math.floor(tabelaX), 
+                                Math.floor(tabelaY), 
+                                Math.floor(tabelaW), 
+                                Math.floor(tabelaH)
+                            ));
+                            logArea.innerHTML += "\n⚠️ Tabela não detectada, usando área da imagem (ignorando cabeçalho)";
+                        }
                         
-                        // Detectar linhas da tabela
-                        let linhasHorizontais = detectarLinhas(binary, warped.cols, warped.rows, true);
-                        let linhasVerticais = detectarLinhas(binary, warped.cols, warped.rows, false);
+                        // ==================== 4. DETECTAR BOLHAS APENAS NA TABELA ====================
+                        let grayTabela = new cv.Mat();
+                        cv.cvtColor(tabelaMat, grayTabela, cv.COLOR_RGBA2GRAY);
                         
-                        // Encontrar a grade da tabela
-                        let gridInfo = encontrarGrade(linhasHorizontais, linhasVerticais, numQuestoes, numAlternativas);
+                        let binaryTabela = new cv.Mat();
+                        cv.threshold(grayTabela, binaryTabela, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
                         
-                        // ==================== 3. DETECTAR CÍRCULOS ====================
-                        let circles = detectarCirculosOpenCV(binary, warped.cols, warped.rows);
+                        // Detectar círculos na tabela
+                        let circles = detectarCirculosNaTabela(binaryTabela, tabelaMat.cols, tabelaMat.rows);
                         
-                        // ==================== 4. ORGANIZAR MARCAÇÕES ====================
+                        // Ajustar coordenadas para a imagem warpada
+                        circles = circles.map(c => ({
+                            ...c,
+                            x: c.x + tabelaX,
+                            y: c.y + tabelaY
+                        }));
+                        
+                        // ==================== 5. ORGANIZAR MARCAÇÕES ====================
+                        // Usar o grid da tabela
+                        let gridInfo = null;
+                        if (tabelaRect) {
+                            gridInfo = {
+                                linhasH: gerarGridLinhas(tabelaRect.y, tabelaRect.y + tabelaRect.h, numQuestoes),
+                                linhasV: gerarGridLinhas(tabelaRect.x, tabelaRect.x + tabelaRect.w, numAlternativas)
+                            };
+                        } else {
+                            // Fallback: grid uniforme
+                            gridInfo = {
+                                linhasH: gerarGridLinhas(tabelaY, tabelaY + tabelaH, numQuestoes),
+                                linhasV: gerarGridLinhas(tabelaX, tabelaX + tabelaW, numAlternativas)
+                            };
+                        }
+                        
                         let questoes = organizarPorGrid(circles, gridInfo, numQuestoes, numAlternativas);
+                        
+                        // ==================== 6. LIMPAR E RESOLVER ====================
+                        // Filtrar círculos que estão fora da região da tabela para visualização
+                        let todosCirculos = detectarCirculosNaTabela(binaryTabela, tabelaMat.cols, tabelaMat.rows);
+                        todosCirculos = todosCirculos.map(c => ({
+                            ...c,
+                            x: c.x + tabelaX,
+                            y: c.y + tabelaY,
+                            filtrado: false
+                        }));
+                        
+                        // Para debug, mostrar também os círculos filtrados
+                        let todosComFiltro = todosCirculos.map(c => {
+                            const naTabela = c.x >= gridInfo.linhasV[0] && c.x <= gridInfo.linhasV[gridInfo.linhasV.length-1] &&
+                                              c.y >= gridInfo.linhasH[0] && c.y <= gridInfo.linhasH[gridInfo.linhasH.length-1];
+                            return {
+                                ...c,
+                                filtrado: !naTabela || c.fillRatio < MIN_FILL_RATIO
+                            };
+                        });
                         
                         // Limpar memória
                         src.delete();
@@ -722,18 +813,23 @@
                         edges.delete();
                         contours.delete();
                         hierarchy.delete();
-                        grayWarped.delete();
-                        binary.delete();
+                        grayTabela.delete();
+                        binaryTabela.delete();
+                        if (tabelaMat) tabelaMat.delete();
                         
                         resolve({
                             warped: warped,
                             folhaEncontrada: folhaEncontrada,
                             pontosFolha: pontosFolha,
                             gridInfo: gridInfo,
-                            circles: circles,
+                            circles: todosComFiltro,
+                            circlesValidos: circles,
                             questoes: questoes,
-                            linhasHorizontais: linhasHorizontais,
-                            linhasVerticais: linhasVerticais
+                            tabelaRect: tabelaRect,
+                            tabelaX: tabelaX,
+                            tabelaY: tabelaY,
+                            tabelaW: tabelaW,
+                            tabelaH: tabelaH
                         });
                         
                     } catch (err) {
@@ -748,110 +844,97 @@
         });
     }
     
-    function detectarLinhas(binary, w, h, horizontal) {
+    function encontrarTabela(warped) {
+        // Converter para cinza
+        let gray = new cv.Mat();
+        cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
+        
+        // Binarizar
+        let binary = new cv.Mat();
+        cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+        
+        // Detectar contornos
+        let contours = new cv.MatVector();
+        let hierarchy = new cv.Mat();
+        cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+        
+        let melhorRect = null;
+        let melhorPontuacao = 0;
+        const imgArea = warped.rows * warped.cols;
+        
+        for (let i = 0; i < contours.size(); i++) {
+            let contour = contours.get(i);
+            let area = cv.contourArea(contour);
+            
+            // A tabela deve ocupar uma área significativa
+            if (area < imgArea * 0.1) continue;
+            
+            let rect = cv.boundingRect(contour);
+            let aspectRatio = rect.width / rect.height;
+            
+            // A tabela tem proporção aproximada de A4 (1:1.4)
+            if (aspectRatio < 0.5 || aspectRatio > 2.0) continue;
+            
+            // Pontuar: quanto mais retangular, melhor
+            let perimeter = cv.arcLength(contour, true);
+            let rectangularity = 4 * Math.PI * area / (perimeter * perimeter);
+            
+            // Área ocupada em relação à imagem
+            let areaRatio = area / imgArea;
+            
+            let pontuacao = rectangularity * 0.6 + areaRatio * 0.4;
+            
+            if (pontuacao > melhorPontuacao) {
+                melhorPontuacao = pontuacao;
+                melhorRect = {
+                    x: rect.x,
+                    y: rect.y,
+                    w: rect.width,
+                    h: rect.height
+                };
+            }
+        }
+        
+        // Se não encontrou um retângulo bom, usar a própria imagem com margens
+        if (!melhorRect) {
+            const margin = Math.min(warped.rows, warped.cols) * 0.05;
+            melhorRect = {
+                x: Math.floor(margin),
+                y: Math.floor(margin * 2), // Mais margem em cima para o cabeçalho
+                w: Math.floor(warped.cols - margin * 2),
+                h: Math.floor(warped.rows - margin * 3)
+            };
+            logArea.innerHTML += "\n⚠️ Usando retângulo padrão para a tabela";
+        }
+        
+        // Limpar
+        gray.delete();
+        binary.delete();
+        contours.delete();
+        hierarchy.delete();
+        
+        return melhorRect;
+    }
+    
+    function gerarGridLinhas(inicio, fim, numDivisoes) {
         const linhas = [];
-        const step = 3;
-        const threshold = 0.3; // 30% de pixels pretos
-        
-        if (horizontal) {
-            // Detectar linhas horizontais
-            for (let y = 0; y < h; y += step) {
-                let darkCount = 0;
-                for (let x = 0; x < w; x++) {
-                    if (binary.data[y * w + x] === 0) darkCount++;
-                }
-                if (darkCount / w > threshold) {
-                    linhas.push(y);
-                }
-            }
-        } else {
-            // Detectar linhas verticais
-            for (let x = 0; x < w; x += step) {
-                let darkCount = 0;
-                for (let y = 0; y < h; y++) {
-                    if (binary.data[y * w + x] === 0) darkCount++;
-                }
-                if (darkCount / h > threshold) {
-                    linhas.push(x);
-                }
-            }
+        for (let i = 0; i <= numDivisoes; i++) {
+            linhas.push(Math.round(inicio + (fim - inicio) * i / numDivisoes));
         }
-        
-        // Agrupar linhas próximas
-        return agruparLinhas(linhas, 10);
+        return linhas;
     }
     
-    function agruparLinhas(linhas, distancia) {
-        if (linhas.length === 0) return [];
-        linhas.sort((a, b) => a - b);
-        const grupos = [];
-        let grupoAtual = [linhas[0]];
-        
-        for (let i = 1; i < linhas.length; i++) {
-            if (linhas[i] - grupoAtual[grupoAtual.length - 1] < distancia) {
-                grupoAtual.push(linhas[i]);
-            } else {
-                grupos.push(Math.round(grupoAtual.reduce((a, b) => a + b, 0) / grupoAtual.length));
-                grupoAtual = [linhas[i]];
-            }
-        }
-        if (grupoAtual.length > 0) {
-            grupos.push(Math.round(grupoAtual.reduce((a, b) => a + b, 0) / grupoAtual.length));
-        }
-        return grupos;
-    }
-    
-    function encontrarGrade(linhasH, linhasV, numQ, numAlt) {
-        // Encontrar a grade baseada nas linhas detectadas
-        // Se não encontrar linhas suficientes, usar divisão uniforme
-        let gridH = [];
-        let gridV = [];
-        
-        // Linhas horizontais (questões)
-        if (linhasH.length >= numQ + 1) {
-            // Pegar as primeiras numQ+1 linhas
-            gridH = linhasH.slice(0, numQ + 1);
-        } else {
-            // Usar divisão uniforme
-            const h = 1000; // altura padrão
-            for (let i = 0; i <= numQ; i++) {
-                gridH.push(Math.round(i * h / numQ));
-            }
-        }
-        
-        // Linhas verticais (alternativas)
-        if (linhasV.length >= numAlt + 1) {
-            gridV = linhasV.slice(0, numAlt + 1);
-        } else {
-            const w = 800; // largura padrão
-            for (let i = 0; i <= numAlt; i++) {
-                gridV.push(Math.round(i * w / numAlt));
-            }
-        }
-        
-        return {
-            linhasH: gridH,
-            linhasV: gridV,
-            numLinhas: gridH.length - 1,
-            numColunas: gridV.length - 1
-        };
-    }
-    
-    function detectarCirculosOpenCV(binary, w, h) {
+    function detectarCirculosNaTabela(binary, w, h) {
         const circles = [];
         const minRadius = Math.min(w, h) * 0.015;
         const maxRadius = Math.min(w, h) * 0.05;
         const visited = new Uint8Array(w * h);
-        
-        // Usar Hough Circle Transform do OpenCV para melhor detecção
-        // Como estamos usando js, vamos fazer uma abordagem manual melhorada
         
         for (let y = 0; y < h; y += 2) {
             for (let x = 0; x < w; x += 2) {
                 const idx = y * w + x;
                 if (visited[idx] || binary.data[idx] === 255) continue;
                 
-                // Flood fill para encontrar região escura
                 const region = [];
                 const stack = [{x, y}];
                 visited[idx] = 1;
@@ -896,8 +979,7 @@
                 const raio = (width + height) / 4;
                 
                 // Verificar se é um círculo válido
-                if (area > 20 && raio >= minRadius && raio <= maxRadius) {
-                    // Verificar circularidade
+                if (area > MIN_CIRCLE_AREA && raio >= minRadius && raio <= maxRadius) {
                     const bboxArea = width * height;
                     const ratio = area / bboxArea;
                     
@@ -924,7 +1006,8 @@
                     
                     const fillRatio = totalPixels > 0 ? darkPixels / totalPixels : 0;
                     
-                    if (ratio > 0.2 && fillRatio > 0.15) {
+                    // FILTRO: só aceitar se for bem preenchido (bolha de verdade)
+                    if (ratio > 0.2 && fillRatio >= MIN_FILL_RATIO && fillRatio <= MAX_FILL_RATIO) {
                         circles.push({
                             x: cx,
                             y: cy,
@@ -951,40 +1034,22 @@
         const linhasH = gridInfo.linhasH;
         const linhasV = gridInfo.linhasV;
         
-        if (circles.length === 0) {
-            for (let i = 0; i < numQ; i++) {
-                questoes.push({
-                    questao: i + 1,
-                    marcacoes: [],
-                    numMarcacoes: 0,
-                    temMarca: false,
-                    temDupla: false
-                });
-            }
-            return questoes;
-        }
-        
-        // Para cada questão, encontrar círculos na sua linha
         for (let q = 0; q < numQ; q++) {
             const yMin = linhasH[q];
             const yMax = linhasH[q + 1];
-            const alturaLinha = yMax - yMin;
             
             // Círculos nesta linha
             const circulosLinha = circles.filter(c => c.y >= yMin && c.y <= yMax);
             
-            // Para cada alternativa, encontrar o círculo mais próximo
             const marcacoes = [];
             
             for (let a = 0; a < numAlt; a++) {
                 const xMin = linhasV[a];
                 const xMax = linhasV[a + 1];
                 
-                // Círculos nesta coluna
                 const circulosColuna = circulosLinha.filter(c => c.x >= xMin && c.x <= xMax);
                 
                 if (circulosColuna.length > 0) {
-                    // Pegar o círculo com maior preenchimento
                     const melhor = circulosColuna.reduce((a, b) => a.fillRatio > b.fillRatio ? a : b);
                     marcacoes.push({
                         col: a,
@@ -998,7 +1063,7 @@
             }
             
             // Filtrar marcações com preenchimento mínimo
-            const marcacoesFiltradas = marcacoes.filter(m => m.fillRatio > 0.12);
+            const marcacoesFiltradas = marcacoes.filter(m => m.fillRatio >= MIN_FILL_RATIO);
             
             questoes.push({
                 questao: q + 1,
@@ -1088,23 +1153,25 @@
             const questoes = resultado.questoes || [];
             const qtdDetectadas = questoes.filter(q => q.temMarca).length;
             const qtdDuplas = questoes.filter(q => q.temDupla).length;
+            const totalCirculos = resultado.circles ? resultado.circles.length : 0;
+            const circulosValidos = resultado.circlesValidos ? resultado.circlesValidos.length : 0;
             
             if (qtdDetectadas > 0 || qtdDuplas > 0) {
                 statusDeteccao.innerHTML = `
                     ✅ Processamento concluído! 
-                    Folha: ${resultado.folhaEncontrada ? '✓' : '✗'} | 
+                    Bolhas detectadas: ${totalCirculos} | Válidas: ${circulosValidos} | 
                     ${qtdDetectadas} únicas, ${qtdDuplas} duplas
                 `;
                 statusDeteccao.className = 'status-deteccao';
             } else {
-                statusDeteccao.innerHTML = `⚠️ Nenhuma marcação detectada (${resultado.circles ? resultado.circles.length : 0} círculos encontrados)`;
+                statusDeteccao.innerHTML = `⚠️ Nenhuma bolha válida detectada (${totalCirculos} encontradas, ${circulosValidos} válidas)`;
                 statusDeteccao.className = 'status-deteccao warning';
             }
             
             atualizarProgresso(100);
             setTimeout(() => atualizarProgresso(0), 1000);
             
-            logArea.innerHTML += `\n🔍 Processado: ${resultado.circles ? resultado.circles.length : 0} círculos detectados`;
+            logArea.innerHTML += `\n🔍 Processado: ${totalCirculos} bolhas, ${circulosValidos} válidas`;
             
         } catch (err) {
             statusDeteccao.innerHTML = '❌ Erro no processamento: ' + err.message;
@@ -1123,11 +1190,10 @@
         if (mostrarGrid && resultado.gridInfo) {
             const grid = resultado.gridInfo;
             
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.5)';
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 4]);
             
-            // Linhas horizontais
             for (const y of grid.linhasH) {
                 ctx.beginPath();
                 ctx.moveTo(0, y);
@@ -1135,7 +1201,6 @@
                 ctx.stroke();
             }
             
-            // Linhas verticais
             for (const x of grid.linhasV) {
                 ctx.beginPath();
                 ctx.moveTo(x, 0);
@@ -1146,16 +1211,36 @@
             ctx.setLineDash([]);
         }
         
-        // Desenhar círculos detectados
+        // Desenhar retângulo da tabela se disponível
+        if (resultado.tabelaRect) {
+            const rect = resultado.tabelaRect;
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
+        }
+        
+        // Desenhar círculos detectados (com filtro)
         if (resultado.circles) {
             for (const circle of resultado.circles) {
+                const cor = circle.filtrado ? 'rgba(148, 163, 184, 0.3)' : 'rgba(59, 130, 246, 0.4)';
+                const borda = circle.filtrado ? 'rgba(148, 163, 184, 0.5)' : 'rgba(59, 130, 246, 0.7)';
+                
                 ctx.beginPath();
                 ctx.arc(circle.x, circle.y, circle.raio, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                ctx.fillStyle = cor;
                 ctx.fill();
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = borda;
+                ctx.lineWidth = circle.filtrado ? 1 : 1.5;
                 ctx.stroke();
+                
+                if (!circle.filtrado) {
+                    // Mostrar porcentagem
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
+                    ctx.font = '9px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    ctx.fillText(Math.round(circle.fillRatio * 100) + '%', circle.x, circle.y - circle.raio - 2);
+                }
             }
         }
         
@@ -1164,13 +1249,14 @@
             for (const q of resultado.questoes) {
                 for (const marc of q.marcacoes) {
                     const cor = q.temDupla ? '#8b5cf6' : '#10b981';
+                    const raio = marc.circle.raio + 4;
                     
                     ctx.beginPath();
-                    ctx.arc(marc.x, marc.y, marc.circle.raio + 3, 0, 2 * Math.PI);
+                    ctx.arc(marc.x, marc.y, raio, 0, 2 * Math.PI);
                     ctx.fillStyle = cor + '40';
                     ctx.fill();
                     ctx.strokeStyle = cor;
-                    ctx.lineWidth = 2.5;
+                    ctx.lineWidth = 3;
                     ctx.stroke();
                     
                     ctx.fillStyle = '#fff';
@@ -1178,11 +1264,6 @@
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(marc.letra, marc.x, marc.y);
-                    
-                    // Mostrar porcentagem de preenchimento
-                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-                    ctx.font = '10px Arial';
-                    ctx.fillText(Math.round(marc.fillRatio * 100) + '%', marc.x, marc.y + marc.circle.raio + 14);
                 }
             }
         }
@@ -1200,7 +1281,6 @@
         atualizarProgresso(10);
         
         try {
-            // Se não tiver dados processados, processar
             if (!dadosProcessamento) {
                 await processarImagem(currentImageData);
             }
@@ -1209,7 +1289,6 @@
             
             const questoes = dadosProcessamento ? dadosProcessamento.questoes : [];
             
-            // Corrigir
             let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
             const detalhes = [];
             let htmlDetalhes = '';
@@ -1277,10 +1356,8 @@
             
             atualizarProgresso(90);
             
-            // Salvar resultados
             ultimosResultados = { detalhes, acertos, erros, duplas, naoDetectados };
             
-            // Mostrar resultados
             let percentual = (acertos / numQuestoes) * 100;
             let nota = (acertos/numQuestoes*10).toFixed(1);
             scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
@@ -1294,7 +1371,6 @@
             resultadoDetalhado.innerHTML = htmlDetalhes;
             resultArea.style.display = 'block';
             
-            // Desenhar resultado na imagem
             desenharResultadoFinal();
             
             atualizarProgresso(100);
@@ -1324,9 +1400,8 @@
             
             const w = resultCanvas.width;
             const h = resultCanvas.height;
-            const cellH = h / numQuestoes;
             
-            // Se tiver gridInfo, usar as linhas reais
+            // Usar grid real se disponível
             let linhasH = null;
             if (dadosProcessamento && dadosProcessamento.gridInfo) {
                 linhasH = dadosProcessamento.gridInfo.linhasH;
@@ -1334,11 +1409,10 @@
             
             for (const det of ultimosResultados.detalhes) {
                 let y;
-                if (linhasH && det.questao < linhasH.length) {
+                if (linhasH && det.questao <= linhasH.length) {
                     y = (linhasH[det.questao - 1] + linhasH[det.questao]) / 2;
-                    y = y * (h / (dadosProcessamento.warped ? dadosProcessamento.warped.rows : 1000));
                 } else {
-                    y = (det.questao - 0.5) * cellH;
+                    y = (det.questao - 0.5) * (h / numQuestoes);
                 }
                 
                 let cor, simbolo;
@@ -1349,7 +1423,6 @@
                     default: cor = '#eab308'; simbolo = '?'; break;
                 }
                 
-                // Círculo de status
                 ctx.beginPath();
                 ctx.arc(25, y, 20, 0, 2 * Math.PI);
                 ctx.fillStyle = cor + '80';
@@ -1364,7 +1437,6 @@
                 ctx.textBaseline = 'middle';
                 ctx.fillText(simbolo, 25, y);
                 
-                // Texto da questão
                 ctx.fillStyle = '#1e293b';
                 ctx.font = 'bold 13px Arial';
                 ctx.textAlign = 'left';
@@ -1373,7 +1445,6 @@
                 const pct = det.fillPct ? ` ${Math.round(det.fillPct*100)}%` : '';
                 ctx.fillText(`Q${det.questao}: ${marcado}${pct}`, 55, y);
                 
-                // Gabarito
                 if (det.gabarito && det.gabarito !== '-') {
                     ctx.fillStyle = '#64748b';
                     ctx.font = '11px Arial';
@@ -1527,8 +1598,16 @@
         if (mostrarDebug && dadosProcessamento) {
             let debugText = '=== DADOS DE PROCESSAMENTO ===\n';
             debugText += `Folha encontrada: ${dadosProcessamento.folhaEncontrada ? 'SIM' : 'NÃO'}\n`;
-            debugText += `Círculos detectados: ${dadosProcessamento.circles ? dadosProcessamento.circles.length : 0}\n`;
+            debugText += `Tabela detectada: ${dadosProcessamento.tabelaRect ? 'SIM' : 'NÃO'}\n`;
+            debugText += `Bolhas totais: ${dadosProcessamento.circles ? dadosProcessamento.circles.length : 0}\n`;
+            debugText += `Bolhas válidas: ${dadosProcessamento.circlesValidos ? dadosProcessamento.circlesValidos.length : 0}\n`;
             debugText += `Questões processadas: ${dadosProcessamento.questoes ? dadosProcessamento.questoes.length : 0}\n\n`;
+            
+            if (dadosProcessamento.tabelaRect) {
+                debugText += '=== TABELA ===\n';
+                const r = dadosProcessamento.tabelaRect;
+                debugText += `Posição: (${r.x}, ${r.y}) ${r.w}x${r.h}\n\n`;
+            }
             
             if (dadosProcessamento.gridInfo) {
                 debugText += '=== GRID ===\n';
