@@ -54,11 +54,6 @@
         .stat-value { font-size: 1.5rem; font-weight: bold; color: #1e40af; }
         .stat-label { font-size: 0.75rem; color: #475569; }
         
-        .point-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
-        .point-btn { background: #8b5cf6; font-size: 0.75rem; padding: 5px 10px; margin: 0; }
-        .point-btn.active { background: #10b981; transform: scale(1.05); }
-        .point-btn-done { background: #10b981; opacity: 0.7; }
-        
         .omr-card {
             background: white; position: relative; font-family: 'Segoe UI', 'Arial', sans-serif;
             padding: 40px 30px; border-radius: 12px; border: 1px solid #cbd5e1;
@@ -296,7 +291,6 @@
     
     <h1>📋 Leitor de Gabarito RG Math</h1>
     
-    <!-- INSTRUÇÕES SIMPLIFICADAS - SEM MARCADORES -->
     <div class="instrucoes-simplificadas no-print">
         <h4>🚀 Como usar (agora mais fácil!)</h4>
         <p>1️⃣ Defina o <strong>Título da Prova</strong> e <strong>número de questões</strong></p>
@@ -304,7 +298,7 @@
         <p>3️⃣ No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</p>
         <p>4️⃣ Tire uma foto do cartão preenchido ou envie uma imagem</p>
         <p>5️⃣ Clique em <strong>"CORRIGIR PROVA"</strong> → <strong>detecção automática!</strong> ✅</p>
-        <p style="color: #065f46; font-weight: 600; margin-top: 8px;">💡 Não precisa mais clicar nos números! O sistema detecta a folha automaticamente.</p>
+        <p style="color: #065f46; font-weight: 600; margin-top: 8px;">💡 Se as colunas estiverem invertidas, clique em "Inverter Leitura"</p>
     </div>
     
     <div class="config-panel no-print">
@@ -333,7 +327,6 @@
     
     <div class="two-columns no-print">
         <div class="column column-left-order">
-            <!-- ÁREA DE INSTRUÇÕES SIMPLIFICADA -->
             <div class="card instrucoes-area">
                 <div class="section-title">🎯 Instruções Rápidas</div>
                 <div style="padding: 10px;">
@@ -374,7 +367,10 @@
             <div class="card resultado-imagem-area">
                 <div class="section-title">🖼️ Resultado da Correção</div>
                 <canvas id="resultCanvas" style="width:100%; border-radius: 20px;"></canvas>
-                <button id="corrigirBtn" class="btn-green" style="width:100%; font-size:1.2rem; margin-top: 15px;">✨ CORRIGIR PROVA</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
+                    <button id="corrigirBtn" class="btn-green" style="flex:1; font-size:1.2rem;">✨ CORRIGIR PROVA</button>
+                    <button id="inverterLeituraBtn" class="btn-warning" style="flex:0.5;">🔄 Inverter Colunas</button>
+                </div>
             </div>
         </div>
         
@@ -425,8 +421,8 @@
     let cvReady = false;
     let cameraActive = true;
     let stream = null;
+    let inverterColunas = false;
     
-    // Pontos agora são detectados automaticamente
     let pontos = [
         { x: 0.05, y: 0.05 },
         { x: 0.95, y: 0.05 },
@@ -447,6 +443,7 @@
     const fileUpload = document.getElementById('fileUpload');
     const resultCanvas = document.getElementById('resultCanvas');
     const corrigirBtn = document.getElementById('corrigirBtn');
+    const inverterLeituraBtn = document.getElementById('inverterLeituraBtn');
     const resultArea = document.getElementById('resultArea');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const gradeDetail = document.getElementById('gradeDetail');
@@ -527,7 +524,7 @@
     }
     
     // ============================================================
-    // NOVA FUNÇÃO: DETECÇÃO AUTOMÁTICA DE VÉRTICES
+    // DETECÇÃO AUTOMÁTICA DE VÉRTICES - VERSÃO CORRIGIDA
     // ============================================================
     function detectarVerticesAutomaticamente(imageData) {
         return new Promise((resolve) => {
@@ -536,7 +533,6 @@
                 try {
                     let src = cv.imread(img);
                     
-                    // Reduz para processamento mais rápido
                     let maxDim = 800;
                     let scale = 1;
                     if (src.cols > maxDim || src.rows > maxDim) {
@@ -547,20 +543,16 @@
                         src = resized;
                     }
                     
-                    // Converte para escala de cinza
                     let gray = new cv.Mat();
                     cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
                     
-                    // Binariza
                     let binary = new cv.Mat();
                     cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
                     
-                    // Encontra contornos
                     let contours = new cv.MatVector();
                     let hierarchy = new cv.Mat();
                     cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
                     
-                    // Encontra o maior contorno (a folha)
                     let maxArea = 0;
                     let largestContour = null;
                     for (let i = 0; i < contours.size(); i++) {
@@ -573,7 +565,6 @@
                     }
                     
                     if (largestContour) {
-                        // Aproxima para um polígono (deve ter 4 vértices)
                         let epsilon = 0.02 * cv.arcLength(largestContour, true);
                         let approx = new cv.Mat();
                         cv.approxPolyDP(largestContour, approx, epsilon, true);
@@ -586,19 +577,30 @@
                                 points.push({x, y});
                             }
                             
-                            // Ordena: superior esquerdo, superior direito, inferior direito, inferior esquerdo
-                            points.sort((a, b) => a.y - b.y);
-                            let top = points.slice(0, 2);
-                            let bottom = points.slice(2);
-                            top.sort((a, b) => a.x - b.x);
-                            bottom.sort((a, b) => a.x - b.x);
+                            // ============================================================
+                            // ORDENAÇÃO CORRIGIDA: encontra cantos por distância e diferença
+                            // ============================================================
+                            // 1. Canto superior esquerdo: menor x + y
+                            let sortedByDist = points.map((p, i) => ({ ...p, idx: i, dist: p.x + p.y }));
+                            sortedByDist.sort((a, b) => a.dist - b.dist);
+                            let topLeft = sortedByDist[0];
                             
-                            let orderedPoints = [
-                                top[0],  // superior esquerdo
-                                top[1],  // superior direito
-                                bottom[1], // inferior direito
-                                bottom[0]  // inferior esquerdo
-                            ];
+                            // 2. Canto superior direito: maior x - y
+                            let sortedByDiff = points.map((p, i) => ({ ...p, idx: i, diff: p.x - p.y }));
+                            sortedByDiff.sort((a, b) => b.diff - a.diff);
+                            let topRight = sortedByDiff[0];
+                            
+                            // 3. Os dois restantes são os inferiores
+                            let remaining = points.filter(p => p !== topLeft && p !== topRight);
+                            let bottomLeft = remaining[0];
+                            let bottomRight = remaining[1];
+                            
+                            // 4. Corrige se estiverem invertidos (bottomLeft deve ter x menor que bottomRight)
+                            if (bottomLeft.x > bottomRight.x) {
+                                [bottomLeft, bottomRight] = [bottomRight, bottomLeft];
+                            }
+                            
+                            let orderedPoints = [topLeft, topRight, bottomRight, bottomLeft];
                             
                             pontos = orderedPoints.map(p => ({
                                 x: p.x / src.cols,
@@ -610,7 +612,6 @@
                             
                             logArea.innerHTML += "\n✅ Vértices detectados automaticamente!";
                             
-                            // Limpeza
                             contours.delete();
                             hierarchy.delete();
                             gray.delete();
@@ -624,7 +625,7 @@
                         approx.delete();
                     }
                     
-                    // Fallback: usa cantos da imagem
+                    // Fallback
                     pontos = [
                         {x: 0.05, y: 0.05},
                         {x: 0.95, y: 0.05},
@@ -654,7 +655,6 @@
     // PRÉ-PROCESSAMENTO MELHORADO
     // ============================================================
     function preprocessarImagem(src) {
-        // Redimensiona
         let maxDim = 1200;
         let scale = 1;
         if (src.cols > maxDim || src.rows > maxDim) {
@@ -665,19 +665,15 @@
             src = resized;
         }
         
-        // Converte para escala de cinza
         let gray = new cv.Mat();
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         
-        // Remove ruído com blur
         let blurred = new cv.Mat();
         cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
         
-        // Binarização adaptativa (melhor para iluminação variável)
         let binary = new cv.Mat();
         cv.adaptiveThreshold(blurred, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
         
-        // Operação morfológica para limpar ruído
         let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
         let cleaned = new cv.Mat();
         cv.morphologyEx(binary, cleaned, cv.MORPH_CLOSE, kernel);
@@ -692,7 +688,8 @@
     
     function processarImagem(imageData) { 
         currentImageData = imageData; 
-        // Tenta detectar automaticamente
+        inverterColunas = false;
+        inverterLeituraBtn.textContent = '🔄 Inverter Colunas';
         detectarVerticesAutomaticamente(imageData).then(() => {
             desenharResultadoNaImagem();
             logArea.innerHTML += "\n📸 Imagem carregada. Clique em CORRIGIR PROVA.";
@@ -711,6 +708,8 @@
         ultimosResultados = null;
         ultimaImagemWarped = null;
         pontosDefinidos = [false, false, false, false];
+        inverterColunas = false;
+        inverterLeituraBtn.textContent = '🔄 Inverter Colunas';
         resultArea.style.display = 'none';
         const ctx = resultCanvas.getContext('2d');
         ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
@@ -780,7 +779,6 @@
         for (let i = 1; i <= qtd; i++) {
             html += `<tr><td style="font-weight:bold;">${i}</td>`;
             for (let j = 0; j < altCount; j++) {
-                // SEM MARCADORES
                 html += `<td style="position:relative;"><div class="circle-omr"></div></td>`;
             }
             html += `</tr>`;
@@ -878,19 +876,30 @@
     validarGabaritoBtn.addEventListener('click', () => { const g = obterGabaritoDaTela(); alert(`Gabarito: ${Object.keys(g).length}/${numQuestoes} questões preenchidas`); });
     
     // ============================================================
-    // CORREÇÃO PRINCIPAL (MODIFICADA COM DETECÇÃO AUTOMÁTICA)
+    // BOTÃO INVERTER COLUNAS
+    // ============================================================
+    inverterLeituraBtn.addEventListener('click', function() {
+        inverterColunas = !inverterColunas;
+        this.textContent = inverterColunas ? '✅ Colunas Invertidas' : '🔄 Inverter Colunas';
+        this.style.background = inverterColunas ? '#10b981' : '#eab308';
+        if (currentImageData) {
+            logArea.innerHTML += `\n🔄 Colunas ${inverterColunas ? 'INVERTIDAS' : 'NORMAL'}`;
+            executarCorrecao();
+        }
+    });
+    
+    // ============================================================
+    // CORREÇÃO PRINCIPAL (COM SUPORTE A INVERSÃO DE COLUNAS)
     // ============================================================
     async function executarCorrecao() {
         if (!currentImageData) { alert("Nenhuma imagem."); return; }
         
-        // 🔥 DETECÇÃO AUTOMÁTICA se não estiver definida
         if (!pontosDefinidos.every(v => v === true)) {
             logArea.innerHTML += "\n🔍 Detectando vértices automaticamente...";
             await detectarVerticesAutomaticamente(currentImageData);
             desenharResultadoNaImagem();
         }
         
-        // Verifica se ainda não foram definidos
         if (!pontosDefinidos.every(v => v === true)) {
             alert("Não foi possível detectar os vértices automaticamente. Tente uma foto melhor.");
             return;
@@ -902,7 +911,7 @@
         
         mostrarLoading();
         logArea.innerHTML += "\n🔍 Corrigindo prova...";
-        const startTime = performance.now();
+        if (inverterColunas) logArea.innerHTML += " (Colunas INVERTIDAS)";
         
         try {
             let img = new Image(); 
@@ -936,7 +945,19 @@
             let warped = new cv.Mat();
             cv.warpPerspective(src, warped, M, new cv.Size(DW, DH));
             
-            // PRÉ-PROCESSAMENTO MELHORADO
+            // VERIFICA SE A IMAGEM NÃO ESTÁ INVERTIDA (ESPELHADA)
+            let sampleRoi = warped.roi(new cv.Rect(10, 10, 100, 50));
+            let sampleGray = new cv.Mat();
+            cv.cvtColor(sampleRoi, sampleGray, cv.COLOR_RGBA2GRAY);
+            let meanVal = cv.mean(sampleGray)[0];
+            
+            if (meanVal < 30) {
+                cv.rotate(warped, warped, cv.ROTATE_180);
+                logArea.innerHTML += "\n🔄 Imagem invertida detectada e corrigida!";
+            }
+            sampleRoi.delete();
+            sampleGray.delete();
+            
             let binary = preprocessarImagem(warped);
             
             const rows = numQuestoes, cols = numAlternativas;
@@ -955,7 +976,11 @@
                 let scores = [];
                 
                 for (let c = 0; c < cols; c++) {
-                    let x = c * cellWidth + marginX;
+                    // ============================================================
+                    // INVERSÃO DE COLUNAS: se ativado, lê da direita para esquerda
+                    // ============================================================
+                    let colIndex = inverterColunas ? (cols - 1 - c) : c;
+                    let x = colIndex * cellWidth + marginX;
                     let y = r * cellHeight + marginY;
                     
                     if (x + innerWidth > DW) x = DW - innerWidth;
@@ -970,7 +995,6 @@
                     cell.delete();
                 }
                 
-                // Encontra a melhor alternativa
                 let maxScore = Math.max(...scores);
                 let maxIndex = scores.indexOf(maxScore);
                 let sortedScores = [...scores].sort((a, b) => b - a);
@@ -1077,7 +1101,6 @@
     btnGerarPDF.addEventListener('click', gerarPDF);
     novaProvaBtn.addEventListener('click', resetarCorrecao);
     
-    // Garantir que ao clicar no botão HOME a câmera seja desligada
     const homeButton = document.getElementById('homeButtonWithCameraOff');
     if (homeButton) {
         homeButton.addEventListener('click', (e) => {
