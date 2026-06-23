@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Leitor de Gabarito RG Math - OMR Pro</title>
+    <title>Leitor de Gabarito RG Math</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
         body { background: #eef2f5; margin: 0; padding: 20px; }
@@ -33,8 +33,6 @@
         .btn-purple { background: #8b5cf6; }
         .btn-red { background: #ef4444; }
         .btn-orange { background: #f97316; }
-        .btn-info { background: #06b6d4; }
-        .btn-pink { background: #ec4899; }
         
         .two-columns { display: flex; flex-wrap: wrap; gap: 25px; margin-top: 20px; }
         .column { flex: 1; min-width: 300px; }
@@ -55,6 +53,11 @@
         .stat-item { text-align: center; min-width: 70px; }
         .stat-value { font-size: 1.5rem; font-weight: bold; color: #1e40af; }
         .stat-label { font-size: 0.75rem; color: #475569; }
+        
+        .point-selector { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; justify-content: center; }
+        .point-btn { background: #8b5cf6; font-size: 0.75rem; padding: 5px 10px; margin: 0; }
+        .point-btn.active { background: #10b981; transform: scale(1.05); }
+        .point-btn-done { background: #10b981; opacity: 0.7; }
         
         .omr-card {
             background: white; position: relative; font-family: 'Segoe UI', 'Arial', sans-serif;
@@ -82,10 +85,8 @@
         .legenda-cor.vermelho { background: #ef4444; }
         .legenda-cor.amarelo { background: #eab308; }
         .legenda-cor.roxo { background: #8b5cf6; }
-        .legenda-cor.azul { background: #3b82f6; }
-        .legenda-cor.laranja { background: #f97316; }
-        .legenda-cor.cinza { background: #94a3b8; }
 
+        /* CABEÇALHO */
         .rg-header-container {
             background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
             padding: 20px 0 18px;
@@ -143,6 +144,7 @@
             .rg-header-container { padding: 10px 0 10px; }
         }
 
+        /* RODAPÉ */
         .rg-footer-container {
             background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
             padding: 32px 20px 28px;
@@ -236,102 +238,32 @@
             margin-bottom: 6px;
             font-size: 0.9rem;
         }
-        
-        .status-deteccao {
+        .camera-info-banner p {
+            margin: 4px 0;
+        }
+        .camera-info-banner .highlight {
+            background: #0284c720;
+            border-radius: 30px;
+            padding: 2px 8px;
+            font-weight: 600;
+        }
+
+        .instrucoes-simplificadas {
             background: #f0fdf4;
-            border: 1px solid #86efac;
-            border-radius: 12px;
-            padding: 10px 14px;
-            margin: 8px 0;
-            font-size: 0.85rem;
-            color: #166534;
+            border-left: 4px solid #10b981;
+            padding: 15px;
+            border-radius: 16px;
+            margin-bottom: 20px;
         }
-        .status-deteccao.error {
-            background: #fef2f2;
-            border-color: #fca5a5;
-            color: #991b1b;
+        .instrucoes-simplificadas h4 {
+            margin: 0 0 8px 0;
+            color: #065f46;
         }
-        .status-deteccao.warning {
-            background: #fffbeb;
-            border-color: #fcd34d;
-            color: #92400e;
-        }
-        .status-deteccao .highlight {
-            font-weight: 700;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 10px;
-            margin: 8px 0;
-            overflow: hidden;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #3b82f6);
-            width: 0%;
-            transition: width 0.3s;
-            border-radius: 10px;
-        }
-        
-        .btn-pequeno {
-            padding: 5px 12px;
-            font-size: 0.75rem;
-            margin: 2px;
-        }
-        
-        .resultado-detalhado {
-            max-height: 300px;
-            overflow-y: auto;
-            text-align: left;
-            font-size: 0.85rem;
-            background: #f8fafc;
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 10px;
-            border: 1px solid #e2e8f0;
-        }
-        .resultado-detalhado .ok { color: #10b981; font-weight: bold; }
-        .resultado-detalhado .err { color: #ef4444; font-weight: bold; }
-        .resultado-detalhado .dup { color: #8b5cf6; font-weight: bold; }
-        .resultado-detalhado .nd { color: #eab308; font-weight: bold; }
-        
-        .debug-info {
-            font-size: 0.75rem;
-            color: #64748b;
-            margin-top: 5px;
-            padding: 8px;
-            background: #f1f5f9;
-            border-radius: 8px;
-            max-height: 200px;
-            overflow-y: auto;
-            font-family: monospace;
-            white-space: pre-wrap;
-        }
-        
-        .filtro-info {
-            font-size: 0.8rem;
-            color: #475569;
-            padding: 6px 12px;
-            background: #f1f5f9;
-            border-radius: 20px;
-            display: inline-block;
-            margin: 4px;
-        }
-        
-        .confianca-bar {
-            height: 4px;
-            background: #e2e8f0;
-            border-radius: 2px;
-            margin-top: 2px;
-            overflow: hidden;
-        }
-        .confianca-bar .fill {
-            height: 100%;
-            border-radius: 2px;
-            transition: width 0.5s;
+        .instrucoes-simplificadas p {
+            margin: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
     </style>
     <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
@@ -340,10 +272,11 @@
 
 <div class="loading" id="loadingIndicator">
     <div class="loading-spinner"></div>
-    <div>🔍 Processando com OpenCV...</div>
-    <div style="font-size: 12px; margin-top: 5px;">Detectando e corrigindo perspectiva</div>
+    <div>🔍 Processando...</div>
+    <div style="font-size: 12px; margin-top: 5px;">Aguarde um momento</div>
 </div>
 
+<!-- CABEÇALHO -->
 <header class="rg-header-container no-print">
     <div class="rg-header-content">
         <img 
@@ -361,31 +294,17 @@
         <a href="https://sites.google.com/view/rgmathprofrayltonguedes/home" target="_blank" class="btn-home" id="homeButtonWithCameraOff">🏠 HOME</a>
     </div>
     
-    <h1>📋 Leitor de Gabarito RG Math - OMR Pro</h1>
+    <h1>📋 Leitor de Gabarito RG Math</h1>
     
-    <div class="instrucoes-iniciais no-print">
-        <h4>📌 Como usar - VERSÃO OTIMIZADA:</h4>
-        <ol>
-            <li>Defina o <strong>Título da Prova</strong>, <strong>número de questões</strong> e <strong>alternativas</strong></li>
-            <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir</li>
-            <li>No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</li>
-            <li>Tire uma foto do cartão preenchido ou envie uma imagem</li>
-            <li><strong>O sistema detecta automaticamente:</strong> 
-                <ul>
-                    <li>✅ A folha e corrige a perspectiva</li>
-                    <li>✅ A tabela de respostas</li>
-                    <li>✅ Apenas bolhas realmente preenchidas (filtro avançado)</li>
-                </ul>
-            </li>
-            <li><strong>Regras de correção:</strong>
-                <ul>
-                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha</li>
-                    <li>❌ Não pontua se houver <strong>DUAS ou mais</strong> marcações</li>
-                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong></li>
-                </ul>
-            </li>
-            <li>Clique em <strong>"CORRIGIR PROVA"</strong> para ver o resultado</li>
-        </ol>
+    <!-- INSTRUÇÕES SIMPLIFICADAS - SEM MARCADORES -->
+    <div class="instrucoes-simplificadas no-print">
+        <h4>🚀 Como usar (agora mais fácil!)</h4>
+        <p>1️⃣ Defina o <strong>Título da Prova</strong> e <strong>número de questões</strong></p>
+        <p>2️⃣ Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong></p>
+        <p>3️⃣ No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</p>
+        <p>4️⃣ Tire uma foto do cartão preenchido ou envie uma imagem</p>
+        <p>5️⃣ Clique em <strong>"CORRIGIR PROVA"</strong> → <strong>detecção automática!</strong> ✅</p>
+        <p style="color: #065f46; font-weight: 600; margin-top: 8px;">💡 Não precisa mais clicar nos números! O sistema detecta a folha automaticamente.</p>
     </div>
     
     <div class="config-panel no-print">
@@ -414,14 +333,27 @@
     
     <div class="two-columns no-print">
         <div class="column column-left-order">
-            <div class="card">
+            <!-- ÁREA DE INSTRUÇÕES SIMPLIFICADA -->
+            <div class="card instrucoes-area">
+                <div class="section-title">🎯 Instruções Rápidas</div>
+                <div style="padding: 10px;">
+                    <p>✅ <strong>Detecção automática</strong> da folha</p>
+                    <p>📸 Tire uma foto com boa iluminação</p>
+                    <p>🔍 Clique em <strong>"CORRIGIR PROVA"</strong></p>
+                    <div style="background: #dbeafe; padding: 10px; border-radius: 10px; margin-top: 10px;">
+                        💡 <strong>Dica:</strong> Mantenha a folha bem enquadrada e sem sombras
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card camera-area">
                 <div class="section-title">📸 Capturar cartão preenchido</div>
                 <video id="video" autoplay playsinline style="width:100%; border-radius: 20px;"></video>
                 
                 <div class="camera-info-banner">
                     <strong>📷 Informações sobre a câmera</strong>
-                    <p>✅ Câmera ativada automaticamente. Sistema otimizado com filtros avançados.</p>
-                    <p>🏠 Ao clicar em HOME, a câmera será desligada.</p>
+                    <p>✅ <span class="highlight">Ao iniciar a página, a câmera é ativada automaticamente</span> para capturar o cartão preenchido. No primeiro acesso, o navegador solicitará permissão para uso da câmera.</p>
+                    <p>🏠 <span class="highlight">Quando for clicar no botão HOME (acima), antes aperte o botão "Desligar Câmera".</span></p>
                 </div>
                 
                 <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
@@ -431,42 +363,18 @@
                     <input type="file" id="fileUpload" accept="image/jpeg,image/png" style="display:none;">
                 </div>
                 <canvas id="canvas" style="display:none;"></canvas>
-                
-                <div id="statusDeteccao" class="status-deteccao">
-                    ⏳ Aguardando imagem...
-                </div>
-                
-                <div class="progress-bar" id="progressBar">
-                    <div class="fill" id="progressFill"></div>
-                </div>
-                
-                <div>
-                    <span class="filtro-info">🔵 Bolhas detectadas</span>
-                    <span class="filtro-info">🟢 Marcações válidas</span>
-                    <span class="filtro-info">🟣 Marcações duplas</span>
-                    <span class="filtro-info">⚪ Filtradas (descartadas)</span>
-                </div>
-                
                 <div class="legenda">
                     <div class="legenda-item"><div class="legenda-cor verde"></div><span>Acertou</span></div>
                     <div class="legenda-item"><div class="legenda-cor vermelho"></div><span>Errou</span></div>
                     <div class="legenda-item"><div class="legenda-cor amarelo"></div><span>Não detectado</span></div>
                     <div class="legenda-item"><div class="legenda-cor roxo"></div><span>Dupla/Anulada</span></div>
-                    <div class="legenda-item"><div class="legenda-cor azul"></div><span>Bolha detectada</span></div>
-                    <div class="legenda-item"><div class="legenda-cor laranja"></div><span>Grid da tabela</span></div>
-                    <div class="legenda-item"><div class="legenda-cor cinza"></div><span>Filtrado (descartado)</span></div>
                 </div>
             </div>
             
             <div class="card resultado-imagem-area">
                 <div class="section-title">🖼️ Resultado da Correção</div>
                 <canvas id="resultCanvas" style="width:100%; border-radius: 20px;"></canvas>
-                <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
-                    <button id="corrigirBtn" class="btn-green" style="flex:1; font-size:1.1rem;">✨ CORRIGIR PROVA</button>
-                    <button id="mostrarGridBtn" class="btn-info btn-pequeno">📐 Mostrar Grid</button>
-                    <button id="debugBtn" class="btn-pink btn-pequeno">🐛 Debug</button>
-                </div>
-                <div id="debugInfo" class="debug-info" style="display:none;"></div>
+                <button id="corrigirBtn" class="btn-green" style="width:100%; font-size:1.2rem; margin-top: 15px;">✨ CORRIGIR PROVA</button>
             </div>
         </div>
         
@@ -476,7 +384,6 @@
                 <div class="score" id="scoreDisplay">0/0</div>
                 <div id="gradeDetail"></div>
                 <div class="stats" id="statsArea"></div>
-                <div id="resultadoDetalhado" class="resultado-detalhado"></div>
                 <div class="result-buttons">
                     <button id="novaProvaBtn" class="btn-nova-prova">📝 NOVA PROVA</button>
                 </div>
@@ -493,6 +400,7 @@
     <div class="log no-print" id="logArea">⏳ Aguardando OpenCV.js...</div>
 </div>
 
+<!-- RODAPÉ -->
 <footer class="rg-footer-container no-print">
     <div class="rg-footer-content">
         <span class="rg-footer-text">© 2025 RG Math - Professor Raylton Guedes</span>
@@ -518,18 +426,18 @@
     let cameraActive = true;
     let stream = null;
     
-    let ultimosResultados = null;
-    let ultimaImagemProcessada = null;
-    let mostrarGrid = false;
-    let mostrarDebug = false;
-    let dadosProcessamento = null;
+    // Pontos agora são detectados automaticamente
+    let pontos = [
+        { x: 0.05, y: 0.05 },
+        { x: 0.95, y: 0.05 },
+        { x: 0.95, y: 0.95 },
+        { x: 0.05, y: 0.95 }
+    ];
+    let pontoAtual = 0;
+    let pontosDefinidos = [false, false, false, false];
     
-    // CONSTANTES OTIMIZADAS (baseadas nos projetos OMRChecker e OpenMCR)
-    const MIN_FILL_RATIO = 0.30;        // Mínimo de preenchimento para considerar uma bolha
-    const MAX_FILL_RATIO = 0.95;        // Máximo de preenchimento (evita áreas totalmente pretas)
-    const MIN_CIRCLE_AREA = 20;         // Área mínima em pixels
-    const BUBBLE_DISTANCE_THRESHOLD = 0.3; // Distância máxima entre bolhas na mesma linha (proporção da largura da célula)
-    const CONFIDENCE_THRESHOLD = 0.4;   // Limiar de confiança para aceitar uma marcação
+    let ultimosResultados = null;
+    let ultimaImagemWarped = null;
     
     // Elementos DOM
     const video = document.getElementById('video');
@@ -539,13 +447,9 @@
     const fileUpload = document.getElementById('fileUpload');
     const resultCanvas = document.getElementById('resultCanvas');
     const corrigirBtn = document.getElementById('corrigirBtn');
-    const mostrarGridBtn = document.getElementById('mostrarGridBtn');
-    const debugBtn = document.getElementById('debugBtn');
-    const debugInfo = document.getElementById('debugInfo');
     const resultArea = document.getElementById('resultArea');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const gradeDetail = document.getElementById('gradeDetail');
-    const resultadoDetalhado = document.getElementById('resultadoDetalhado');
     const logArea = document.getElementById('logArea');
     const resetGabaritoBtn = document.getElementById('resetGabaritoBtn');
     const validarGabaritoBtn = document.getElementById('validarGabaritoBtn');
@@ -559,17 +463,14 @@
     const printArea = document.getElementById('printArea');
     const novaProvaBtn = document.getElementById('novaProvaBtn');
     const loadingIndicator = document.getElementById('loadingIndicator');
-    const statusDeteccao = document.getElementById('statusDeteccao');
-    const progressFill = document.getElementById('progressFill');
     
     function mostrarLoading() { loadingIndicator.style.display = 'flex'; }
     function esconderLoading() { loadingIndicator.style.display = 'none'; }
-    function atualizarProgresso(pct) { progressFill.style.width = Math.min(100, pct) + '%'; }
     
     function esperarOpenCV() {
         if (typeof cv !== 'undefined' && cv.Mat && cv.imread) {
             cvReady = true;
-            logArea.innerHTML = "✅ OpenCV.js carregado! Sistema OMR Pro pronto.";
+            logArea.innerHTML = "✅ OpenCV.js carregado! Sistema pronto para uso.";
         } else {
             logArea.innerHTML = "⏳ Carregando OpenCV...";
             setTimeout(esperarOpenCV, 500);
@@ -577,7 +478,6 @@
     }
     esperarOpenCV();
     
-    // ==================== CÂMERA ====================
     async function iniciarCamera() {
         if (stream) desligarCamera();
         try {
@@ -613,523 +513,7 @@
     
     function toggleCamera() { cameraActive ? desligarCamera() : iniciarCamera(); }
     
-    // ==================== PROCESSAMENTO OMR OTIMIZADO ====================
-    function processarComOpenCV(imageData) {
-        return new Promise((resolve, reject) => {
-            if (!cvReady) {
-                reject(new Error('OpenCV não está pronto'));
-                return;
-            }
-            
-            try {
-                const img = new Image();
-                img.onload = () => {
-                    try {
-                        const tempCanvas = document.createElement('canvas');
-                        tempCanvas.width = img.width;
-                        tempCanvas.height = img.height;
-                        const ctx = tempCanvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        
-                        let src = cv.imread(tempCanvas);
-                        let srcGray = new cv.Mat();
-                        cv.cvtColor(src, srcGray, cv.COLOR_RGBA2GRAY);
-                        
-                        // ==================== 1. DETECÇÃO DA FOLHA ====================
-                        let blurred = new cv.Mat();
-                        cv.GaussianBlur(srcGray, blurred, new cv.Size(5, 5), 0);
-                        
-                        let edges = new cv.Mat();
-                        cv.Canny(blurred, edges, 50, 150, 3);
-                        
-                        let contours = new cv.MatVector();
-                        let hierarchy = new cv.Mat();
-                        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-                        
-                        let maxArea = 0;
-                        let maxContourIndex = -1;
-                        const imgArea = src.rows * src.cols;
-                        
-                        for (let i = 0; i < contours.size(); i++) {
-                            let contour = contours.get(i);
-                            let area = cv.contourArea(contour);
-                            if (area > imgArea * 0.15 && area > maxArea) {
-                                maxArea = area;
-                                maxContourIndex = i;
-                            }
-                        }
-                        
-                        let folhaEncontrada = false;
-                        let pontosFolha = null;
-                        let warped = null;
-                        let M = null;
-                        let tabelaRect = null;
-                        
-                        if (maxContourIndex >= 0) {
-                            let contour = contours.get(maxContourIndex);
-                            let epsilon = 0.02 * cv.arcLength(contour, true);
-                            let approx = new cv.Mat();
-                            cv.approxPolyDP(contour, approx, epsilon, true);
-                            
-                            if (approx.rows === 4) {
-                                folhaEncontrada = true;
-                                pontosFolha = [];
-                                for (let i = 0; i < approx.rows; i++) {
-                                    let x = approx.data32S[i * 2];
-                                    let y = approx.data32S[i * 2 + 1];
-                                    pontosFolha.push({x, y});
-                                }
-                                
-                                pontosFolha.sort((a, b) => a.y - b.y);
-                                let top = pontosFolha.slice(0, 2);
-                                let bottom = pontosFolha.slice(2);
-                                top.sort((a, b) => a.x - b.x);
-                                bottom.sort((a, b) => a.x - b.x);
-                                pontosFolha = [top[0], top[1], bottom[1], bottom[0]];
-                                
-                                let srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                                    pontosFolha[0].x, pontosFolha[0].y,
-                                    pontosFolha[1].x, pontosFolha[1].y,
-                                    pontosFolha[2].x, pontosFolha[2].y,
-                                    pontosFolha[3].x, pontosFolha[3].y
-                                ]);
-                                
-                                let dstWidth = 1000;
-                                let dstHeight = Math.round(1000 * (src.rows / src.cols));
-                                let dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
-                                    0, 0,
-                                    dstWidth, 0,
-                                    dstWidth, dstHeight,
-                                    0, dstHeight
-                                ]);
-                                
-                                M = cv.getPerspectiveTransform(srcPoints, dstPoints);
-                                warped = new cv.Mat();
-                                cv.warpPerspective(src, warped, M, new cv.Size(dstWidth, dstHeight));
-                                
-                                // ==================== 2. DETECÇÃO DA TABELA ====================
-                                tabelaRect = encontrarTabelaOtimizado(warped);
-                                
-                                srcPoints.delete();
-                                dstPoints.delete();
-                            }
-                            approx.delete();
-                        }
-                        
-                        // Fallback: usar imagem redimensionada
-                        if (!folhaEncontrada || !warped) {
-                            logArea.innerHTML += "\n⚠️ Folha não detectada, usando imagem original";
-                            let maxDim = 1000;
-                            let scale = 1;
-                            if (src.rows > maxDim || src.cols > maxDim) {
-                                scale = maxDim / Math.max(src.rows, src.cols);
-                            }
-                            let newW = Math.floor(src.cols * scale);
-                            let newH = Math.floor(src.rows * scale);
-                            warped = new cv.Mat();
-                            cv.resize(src, warped, new cv.Size(newW, newH));
-                            tabelaRect = encontrarTabelaOtimizado(warped);
-                        }
-                        
-                        // ==================== 3. EXTRAIR REGIÃO DA TABELA ====================
-                        let tabelaMat = null;
-                        let tabelaX = 0, tabelaY = 0, tabelaW = 0, tabelaH = 0;
-                        
-                        if (tabelaRect) {
-                            const margin = Math.min(tabelaRect.w, tabelaRect.h) * 0.02;
-                            tabelaX = Math.max(0, tabelaRect.x - margin);
-                            tabelaY = Math.max(0, tabelaRect.y - margin);
-                            tabelaW = Math.min(warped.cols - tabelaX, tabelaRect.w + margin * 2);
-                            tabelaH = Math.min(warped.rows - tabelaY, tabelaRect.h + margin * 2);
-                            
-                            tabelaMat = warped.roi(new cv.Rect(
-                                Math.floor(tabelaX), 
-                                Math.floor(tabelaY), 
-                                Math.floor(tabelaW), 
-                                Math.floor(tabelaH)
-                            ));
-                        } else {
-                            const marginTop = warped.rows * 0.20;
-                            tabelaX = 0;
-                            tabelaY = Math.floor(marginTop);
-                            tabelaW = warped.cols;
-                            tabelaH = warped.rows - tabelaY;
-                            
-                            tabelaMat = warped.roi(new cv.Rect(
-                                Math.floor(tabelaX), 
-                                Math.floor(tabelaY), 
-                                Math.floor(tabelaW), 
-                                Math.floor(tabelaH)
-                            ));
-                            logArea.innerHTML += "\n⚠️ Tabela não detectada, usando área da imagem";
-                        }
-                        
-                        // ==================== 4. DETECÇÃO DE BOLHAS ====================
-                        let grayTabela = new cv.Mat();
-                        cv.cvtColor(tabelaMat, grayTabela, cv.COLOR_RGBA2GRAY);
-                        
-                        // Aplicar equalização de histograma para melhorar contraste
-                        let equalized = new cv.Mat();
-                        cv.equalizeHist(grayTabela, equalized);
-                        
-                        let binaryTabela = new cv.Mat();
-                        cv.threshold(equalized, binaryTabela, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
-                        
-                        // Detectar bolhas com filtros avançados
-                        let circles = detectarBolhasOtimizado(binaryTabela, tabelaMat.cols, tabelaMat.rows);
-                        
-                        // Ajustar coordenadas para a imagem warpada
-                        circles = circles.map(c => ({
-                            ...c,
-                            x: c.x + tabelaX,
-                            y: c.y + tabelaY,
-                            confianca: calcularConfianca(c)
-                        }));
-                        
-                        // ==================== 5. ORGANIZAR MARCAÇÕES ====================
-                        let gridInfo = null;
-                        if (tabelaRect) {
-                            gridInfo = {
-                                linhasH: gerarGridLinhas(tabelaRect.y, tabelaRect.y + tabelaRect.h, numQuestoes),
-                                linhasV: gerarGridLinhas(tabelaRect.x, tabelaRect.x + tabelaRect.w, numAlternativas)
-                            };
-                        } else {
-                            gridInfo = {
-                                linhasH: gerarGridLinhas(tabelaY, tabelaY + tabelaH, numQuestoes),
-                                linhasV: gerarGridLinhas(tabelaX, tabelaX + tabelaW, numAlternativas)
-                            };
-                        }
-                        
-                        let questoes = organizarPorGridOtimizado(circles, gridInfo, numQuestoes, numAlternativas);
-                        
-                        // ==================== 6. PREPARAR DADOS PARA VISUALIZAÇÃO ====================
-                        let todosCirculos = detectarBolhasOtimizado(binaryTabela, tabelaMat.cols, tabelaMat.rows);
-                        todosCirculos = todosCirculos.map(c => ({
-                            ...c,
-                            x: c.x + tabelaX,
-                            y: c.y + tabelaY,
-                            filtrado: false,
-                            confianca: calcularConfianca(c)
-                        }));
-                        
-                        let todosComFiltro = todosCirculos.map(c => {
-                            const naTabela = c.x >= gridInfo.linhasV[0] && c.x <= gridInfo.linhasV[gridInfo.linhasV.length-1] &&
-                                              c.y >= gridInfo.linhasH[0] && c.y <= gridInfo.linhasH[gridInfo.linhasH.length-1];
-                            const confiavel = c.confianca >= CONFIDENCE_THRESHOLD;
-                            return {
-                                ...c,
-                                filtrado: !naTabela || !confiavel
-                            };
-                        });
-                        
-                        // Limpar memória
-                        src.delete();
-                        srcGray.delete();
-                        blurred.delete();
-                        edges.delete();
-                        contours.delete();
-                        hierarchy.delete();
-                        grayTabela.delete();
-                        equalized.delete();
-                        binaryTabela.delete();
-                        if (tabelaMat) tabelaMat.delete();
-                        
-                        resolve({
-                            warped: warped,
-                            folhaEncontrada: folhaEncontrada,
-                            pontosFolha: pontosFolha,
-                            gridInfo: gridInfo,
-                            circles: todosComFiltro,
-                            circlesValidos: circles,
-                            questoes: questoes,
-                            tabelaRect: tabelaRect,
-                            tabelaX: tabelaX,
-                            tabelaY: tabelaY,
-                            tabelaW: tabelaW,
-                            tabelaH: tabelaH
-                        });
-                        
-                    } catch (err) {
-                        reject(err);
-                    }
-                };
-                img.onerror = () => reject(new Error('Erro ao carregar imagem'));
-                img.src = imageData;
-            } catch (err) {
-                reject(err);
-            }
-        });
-    }
-    
-    function encontrarTabelaOtimizado(warped) {
-        let gray = new cv.Mat();
-        cv.cvtColor(warped, gray, cv.COLOR_RGBA2GRAY);
-        
-        // Aplicar threshold adaptativo para melhor detecção
-        let binary = new cv.Mat();
-        cv.adaptiveThreshold(gray, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
-        
-        let contours = new cv.MatVector();
-        let hierarchy = new cv.Mat();
-        cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
-        
-        let melhorRect = null;
-        let melhorPontuacao = 0;
-        const imgArea = warped.rows * warped.cols;
-        
-        for (let i = 0; i < contours.size(); i++) {
-            let contour = contours.get(i);
-            let area = cv.contourArea(contour);
-            
-            if (area < imgArea * 0.05) continue;
-            
-            let rect = cv.boundingRect(contour);
-            let aspectRatio = rect.width / rect.height;
-            
-            if (aspectRatio < 0.3 || aspectRatio > 2.5) continue;
-            
-            let perimeter = cv.arcLength(contour, true);
-            let rectangularity = 4 * Math.PI * area / (perimeter * perimeter);
-            let areaRatio = area / imgArea;
-            
-            let pontuacao = rectangularity * 0.5 + areaRatio * 0.5;
-            
-            if (pontuacao > melhorPontuacao) {
-                melhorPontuacao = pontuacao;
-                melhorRect = {
-                    x: rect.x,
-                    y: rect.y,
-                    w: rect.width,
-                    h: rect.height
-                };
-            }
-        }
-        
-        if (!melhorRect) {
-            const margin = Math.min(warped.rows, warped.cols) * 0.05;
-            melhorRect = {
-                x: Math.floor(margin),
-                y: Math.floor(margin * 2),
-                w: Math.floor(warped.cols - margin * 2),
-                h: Math.floor(warped.rows - margin * 3)
-            };
-        }
-        
-        gray.delete();
-        binary.delete();
-        contours.delete();
-        hierarchy.delete();
-        
-        return melhorRect;
-    }
-    
-    function detectarBolhasOtimizado(binary, w, h) {
-        const circles = [];
-        const minRadius = Math.min(w, h) * 0.012;
-        const maxRadius = Math.min(w, h) * 0.05;
-        const visited = new Uint8Array(w * h);
-        
-        // Usar uma abordagem baseada em busca de contornos
-        for (let y = 1; y < h - 1; y++) {
-            for (let x = 1; x < w - 1; x++) {
-                const idx = y * w + x;
-                if (visited[idx] || binary.data[idx] === 255) continue;
-                
-                // Flood fill otimizado
-                const region = [];
-                const stack = [{x, y}];
-                visited[idx] = 1;
-                
-                let minX = x, maxX = x, minY = y, maxY = y;
-                let sumX = 0, sumY = 0;
-                let count = 0;
-                
-                while (stack.length > 0 && count < 10000) {
-                    const p = stack.pop();
-                    region.push(p);
-                    sumX += p.x;
-                    sumY += p.y;
-                    count++;
-                    
-                    if (p.x < minX) minX = p.x;
-                    if (p.x > maxX) maxX = p.x;
-                    if (p.y < minY) minY = p.y;
-                    if (p.y > maxY) maxY = p.y;
-                    
-                    // Verificar 4-vizinhos
-                    const neighbors = [
-                        {x: p.x-1, y: p.y}, {x: p.x+1, y: p.y},
-                        {x: p.x, y: p.y-1}, {x: p.x, y: p.y+1}
-                    ];
-                    
-                    for (const n of neighbors) {
-                        if (n.x >= 0 && n.x < w && n.y >= 0 && n.y < h) {
-                            const nIdx = n.y * w + n.x;
-                            if (!visited[nIdx] && binary.data[nIdx] === 0) {
-                                visited[nIdx] = 1;
-                                stack.push(n);
-                            }
-                        }
-                    }
-                }
-                
-                const area = count;
-                const cx = sumX / count;
-                const cy = sumY / count;
-                const width = maxX - minX + 1;
-                const height = maxY - minY + 1;
-                const raio = (width + height) / 4;
-                
-                if (area > MIN_CIRCLE_AREA && raio >= minRadius && raio <= maxRadius) {
-                    const bboxArea = width * height;
-                    const ratio = area / bboxArea;
-                    
-                    // Verificar preenchimento interno
-                    let darkPixels = 0;
-                    let totalPixels = 0;
-                    const radius = Math.max(width, height) / 2;
-                    const centerX = (minX + maxX) / 2;
-                    const centerY = (minY + maxY) / 2;
-                    
-                    for (let dy = -radius; dy <= radius; dy++) {
-                        for (let dx = -radius; dx <= radius; dx++) {
-                            const dist = Math.sqrt(dx*dx + dy*dy);
-                            if (dist <= radius * 0.85) {
-                                const px = Math.round(centerX + dx);
-                                const py = Math.round(centerY + dy);
-                                if (px >= 0 && px < w && py >= 0 && py < h) {
-                                    totalPixels++;
-                                    if (binary.data[py * w + px] === 0) darkPixels++;
-                                }
-                            }
-                        }
-                    }
-                    
-                    const fillRatio = totalPixels > 0 ? darkPixels / totalPixels : 0;
-                    
-                    // Filtro avançado: verificar se é uma bolha preenchida
-                    if (ratio > 0.15 && fillRatio >= MIN_FILL_RATIO && fillRatio <= MAX_FILL_RATIO) {
-                        circles.push({
-                            x: cx,
-                            y: cy,
-                            raio: raio,
-                            area: area,
-                            fillRatio: fillRatio,
-                            width: width,
-                            height: height,
-                            minX: minX,
-                            maxX: maxX,
-                            minY: minY,
-                            maxY: maxY,
-                            ratio: ratio
-                        });
-                    }
-                }
-            }
-        }
-        
-        // Remover bolhas duplicadas (muito próximas)
-        const uniqueCircles = [];
-        for (let i = 0; i < circles.length; i++) {
-            let isDuplicate = false;
-            for (let j = 0; j < uniqueCircles.length; j++) {
-                const dx = circles[i].x - uniqueCircles[j].x;
-                const dy = circles[i].y - uniqueCircles[j].y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < Math.min(circles[i].raio, uniqueCircles[j].raio) * 0.5) {
-                    isDuplicate = true;
-                    break;
-                }
-            }
-            if (!isDuplicate) {
-                uniqueCircles.push(circles[i]);
-            }
-        }
-        
-        return uniqueCircles;
-    }
-    
-    function calcularConfianca(circle) {
-        // Combinação de fatores para calcular a confiança da detecção
-        const fillScore = circle.fillRatio;
-        const ratioScore = circle.ratio;
-        const areaScore = Math.min(1, circle.area / 100);
-        
-        return (fillScore * 0.5 + ratioScore * 0.3 + areaScore * 0.2);
-    }
-    
-    function gerarGridLinhas(inicio, fim, numDivisoes) {
-        const linhas = [];
-        for (let i = 0; i <= numDivisoes; i++) {
-            linhas.push(Math.round(inicio + (fim - inicio) * i / numDivisoes));
-        }
-        return linhas;
-    }
-    
-    function organizarPorGridOtimizado(circles, gridInfo, numQ, numAlt) {
-        const questoes = [];
-        const linhasH = gridInfo.linhasH;
-        const linhasV = gridInfo.linhasV;
-        
-        // Para cada questão, agrupar círculos por linha
-        for (let q = 0; q < numQ; q++) {
-            const yMin = linhasH[q];
-            const yMax = linhasH[q + 1];
-            
-            const circulosLinha = circles.filter(c => c.y >= yMin && c.y <= yMax);
-            
-            // Para cada alternativa, encontrar o melhor círculo
-            const marcacoes = [];
-            
-            for (let a = 0; a < numAlt; a++) {
-                const xMin = linhasV[a];
-                const xMax = linhasV[a + 1];
-                
-                const circulosColuna = circulosLinha.filter(c => c.x >= xMin && c.x <= xMax);
-                
-                if (circulosColuna.length > 0) {
-                    // Pegar o círculo com maior confiança
-                    const melhor = circulosColuna.reduce((a, b) => {
-                        const confA = a.confianca || calcularConfianca(a);
-                        const confB = b.confianca || calcularConfianca(b);
-                        return confA > confB ? a : b;
-                    });
-                    
-                    const confianca = melhor.confianca || calcularConfianca(melhor);
-                    
-                    if (confianca >= CONFIDENCE_THRESHOLD) {
-                        marcacoes.push({
-                            col: a,
-                            letra: letras[a],
-                            circle: melhor,
-                            fillRatio: melhor.fillRatio,
-                            confianca: confianca,
-                            x: melhor.x,
-                            y: melhor.y
-                        });
-                    }
-                }
-            }
-            
-            // Verificar se há marcações duplas
-            const temDupla = marcacoes.length > 1;
-            const temMarca = marcacoes.length === 1;
-            
-            questoes.push({
-                questao: q + 1,
-                marcacoes: marcacoes,
-                numMarcacoes: marcacoes.length,
-                temMarca: temMarca,
-                temDupla: temDupla,
-                confiancaMedia: marcacoes.length > 0 ? marcacoes.reduce((s, m) => s + m.confianca, 0) / marcacoes.length : 0
-            });
-        }
-        
-        return questoes;
-    }
-    
-    // ==================== PROCESSAMENTO DE IMAGEM ====================
-    async function capturarFoto() {
+    function capturarFoto() {
         if (!cameraActive || !stream || !video.videoWidth) {
             alert("Câmera não está ativa! Clique em 'Ligar Câmera' primeiro.");
             return;
@@ -1138,395 +522,247 @@
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0);
-        const imageData = canvas.toDataURL('image/jpeg', 0.9);
-        await processarImagem(imageData);
+        processarImagem(canvas.toDataURL('image/jpeg', 0.9));
         logArea.innerHTML += "\n📸 Foto capturada!";
+    }
+    
+    // ============================================================
+    // NOVA FUNÇÃO: DETECÇÃO AUTOMÁTICA DE VÉRTICES
+    // ============================================================
+    function detectarVerticesAutomaticamente(imageData) {
+        return new Promise((resolve) => {
+            let img = new Image();
+            img.onload = function() {
+                try {
+                    let src = cv.imread(img);
+                    
+                    // Reduz para processamento mais rápido
+                    let maxDim = 800;
+                    let scale = 1;
+                    if (src.cols > maxDim || src.rows > maxDim) {
+                        scale = maxDim / Math.max(src.cols, src.rows);
+                        let resized = new cv.Mat();
+                        cv.resize(src, resized, new cv.Size(Math.floor(src.cols * scale), Math.floor(src.rows * scale)));
+                        src.delete();
+                        src = resized;
+                    }
+                    
+                    // Converte para escala de cinza
+                    let gray = new cv.Mat();
+                    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                    
+                    // Binariza
+                    let binary = new cv.Mat();
+                    cv.threshold(gray, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+                    
+                    // Encontra contornos
+                    let contours = new cv.MatVector();
+                    let hierarchy = new cv.Mat();
+                    cv.findContours(binary, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+                    
+                    // Encontra o maior contorno (a folha)
+                    let maxArea = 0;
+                    let largestContour = null;
+                    for (let i = 0; i < contours.size(); i++) {
+                        let contour = contours.get(i);
+                        let area = cv.contourArea(contour);
+                        if (area > maxArea && area > 10000) {
+                            maxArea = area;
+                            largestContour = contour;
+                        }
+                    }
+                    
+                    if (largestContour) {
+                        // Aproxima para um polígono (deve ter 4 vértices)
+                        let epsilon = 0.02 * cv.arcLength(largestContour, true);
+                        let approx = new cv.Mat();
+                        cv.approxPolyDP(largestContour, approx, epsilon, true);
+                        
+                        if (approx.rows === 4) {
+                            let points = [];
+                            for (let i = 0; i < approx.rows; i++) {
+                                let x = approx.data32S[i * 2];
+                                let y = approx.data32S[i * 2 + 1];
+                                points.push({x, y});
+                            }
+                            
+                            // Ordena: superior esquerdo, superior direito, inferior direito, inferior esquerdo
+                            points.sort((a, b) => a.y - b.y);
+                            let top = points.slice(0, 2);
+                            let bottom = points.slice(2);
+                            top.sort((a, b) => a.x - b.x);
+                            bottom.sort((a, b) => a.x - b.x);
+                            
+                            let orderedPoints = [
+                                top[0],  // superior esquerdo
+                                top[1],  // superior direito
+                                bottom[1], // inferior direito
+                                bottom[0]  // inferior esquerdo
+                            ];
+                            
+                            pontos = orderedPoints.map(p => ({
+                                x: p.x / src.cols,
+                                y: p.y / src.rows
+                            }));
+                            
+                            pontosDefinidos = [true, true, true, true];
+                            pontoAtual = 0;
+                            
+                            logArea.innerHTML += "\n✅ Vértices detectados automaticamente!";
+                            
+                            // Limpeza
+                            contours.delete();
+                            hierarchy.delete();
+                            gray.delete();
+                            binary.delete();
+                            src.delete();
+                            approx.delete();
+                            
+                            resolve(true);
+                            return;
+                        }
+                        approx.delete();
+                    }
+                    
+                    // Fallback: usa cantos da imagem
+                    pontos = [
+                        {x: 0.05, y: 0.05},
+                        {x: 0.95, y: 0.05},
+                        {x: 0.95, y: 0.95},
+                        {x: 0.05, y: 0.95}
+                    ];
+                    pontosDefinidos = [true, true, true, true];
+                    
+                    contours.delete();
+                    hierarchy.delete();
+                    gray.delete();
+                    binary.delete();
+                    src.delete();
+                    
+                    logArea.innerHTML += "\n⚠️ Usando cantos da imagem como fallback";
+                    resolve(false);
+                } catch (e) {
+                    logArea.innerHTML += "\n❌ Erro na detecção automática: " + e.message;
+                    resolve(false);
+                }
+            };
+            img.src = imageData;
+        });
+    }
+    
+    // ============================================================
+    // PRÉ-PROCESSAMENTO MELHORADO
+    // ============================================================
+    function preprocessarImagem(src) {
+        // Redimensiona
+        let maxDim = 1200;
+        let scale = 1;
+        if (src.cols > maxDim || src.rows > maxDim) {
+            scale = maxDim / Math.max(src.cols, src.rows);
+            let resized = new cv.Mat();
+            cv.resize(src, resized, new cv.Size(Math.floor(src.cols * scale), Math.floor(src.rows * scale)));
+            src.delete();
+            src = resized;
+        }
+        
+        // Converte para escala de cinza
+        let gray = new cv.Mat();
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        
+        // Remove ruído com blur
+        let blurred = new cv.Mat();
+        cv.GaussianBlur(gray, blurred, new cv.Size(5, 5), 0);
+        
+        // Binarização adaptativa (melhor para iluminação variável)
+        let binary = new cv.Mat();
+        cv.adaptiveThreshold(blurred, binary, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY_INV, 11, 2);
+        
+        // Operação morfológica para limpar ruído
+        let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+        let cleaned = new cv.Mat();
+        cv.morphologyEx(binary, cleaned, cv.MORPH_CLOSE, kernel);
+        
+        gray.delete();
+        blurred.delete();
+        binary.delete();
+        kernel.delete();
+        
+        return cleaned;
+    }
+    
+    function processarImagem(imageData) { 
+        currentImageData = imageData; 
+        // Tenta detectar automaticamente
+        detectarVerticesAutomaticamente(imageData).then(() => {
+            desenharResultadoNaImagem();
+            logArea.innerHTML += "\n📸 Imagem carregada. Clique em CORRIGIR PROVA.";
+        });
     }
     
     function carregarUpload(file) { 
         if (!file) return; 
         const reader = new FileReader(); 
-        reader.onload = async (e) => {
-            await processarImagem(e.target.result);
-        };
+        reader.onload = (e) => processarImagem(e.target.result); 
         reader.readAsDataURL(file); 
     }
     
-    async function processarImagem(imageData) {
-        currentImageData = imageData;
-        mostrarGrid = false;
-        mostrarGridBtn.textContent = '📐 Mostrar Grid';
-        dadosProcessamento = null;
-        debugInfo.style.display = 'none';
-        
-        const img = new Image();
-        img.src = imageData;
-        await new Promise(resolve => { img.onload = resolve; });
-        
+    function resetarCorrecao() {
+        currentImageData = null;
+        ultimosResultados = null;
+        ultimaImagemWarped = null;
+        pontosDefinidos = [false, false, false, false];
+        resultArea.style.display = 'none';
         const ctx = resultCanvas.getContext('2d');
-        resultCanvas.width = img.width;
-        resultCanvas.height = img.height;
-        ctx.drawImage(img, 0, 0);
-        
-        statusDeteccao.textContent = '🔍 Processando com OMR Pro...';
-        statusDeteccao.className = 'status-deteccao';
-        atualizarProgresso(10);
-        
-        try {
-            const resultado = await processarComOpenCV(imageData);
-            atualizarProgresso(80);
-            
-            dadosProcessamento = resultado;
-            
-            if (resultado.warped) {
-                const canvasWarp = document.createElement('canvas');
-                canvasWarp.width = resultado.warped.cols;
-                canvasWarp.height = resultado.warped.rows;
-                cv.imshow(canvasWarp, resultado.warped);
-                ultimaImagemProcessada = canvasWarp.toDataURL('image/jpeg', 0.9);
-                
-                const imgWarp = new Image();
-                imgWarp.src = ultimaImagemProcessada;
-                imgWarp.onload = () => {
-                    resultCanvas.width = imgWarp.width;
-                    resultCanvas.height = imgWarp.height;
-                    ctx.drawImage(imgWarp, 0, 0);
-                    desenharResultadoProcessado(resultado);
-                };
-            }
-            
-            const questoes = resultado.questoes || [];
-            const qtdDetectadas = questoes.filter(q => q.temMarca).length;
-            const qtdDuplas = questoes.filter(q => q.temDupla).length;
-            const totalCirculos = resultado.circles ? resultado.circles.length : 0;
-            const circulosValidos = resultado.circlesValidos ? resultado.circlesValidos.length : 0;
-            
-            if (qtdDetectadas > 0 || qtdDuplas > 0) {
-                statusDeteccao.innerHTML = `
-                    ✅ Processamento concluído! 
-                    Bolhas: ${totalCirculos} | Válidas: ${circulosValidos} | 
-                    Únicas: ${qtdDetectadas} | Duplas: ${qtdDuplas}
-                `;
-                statusDeteccao.className = 'status-deteccao';
-            } else {
-                statusDeteccao.innerHTML = `⚠️ Nenhuma bolha válida detectada (${totalCirculos} encontradas, ${circulosValidos} válidas)`;
-                statusDeteccao.className = 'status-deteccao warning';
-            }
-            
-            atualizarProgresso(100);
-            setTimeout(() => atualizarProgresso(0), 1000);
-            
-            logArea.innerHTML += `\n🔍 Processado: ${totalCirculos} bolhas, ${circulosValidos} válidas`;
-            
-        } catch (err) {
-            statusDeteccao.innerHTML = '❌ Erro no processamento: ' + err.message;
-            statusDeteccao.className = 'status-deteccao error';
-            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
-            console.error(err);
-        }
+        ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova! O gabarito oficial foi mantido.";
+        alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.\n\nTire uma nova foto ou envie outra imagem.");
     }
     
-    function desenharResultadoProcessado(resultado) {
-        const ctx = resultCanvas.getContext('2d');
-        const w = resultCanvas.width;
-        const h = resultCanvas.height;
-        
-        if (mostrarGrid && resultado.gridInfo) {
-            const grid = resultado.gridInfo;
-            
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
-            ctx.lineWidth = 2;
-            ctx.setLineDash([6, 4]);
-            
-            for (const y of grid.linhasH) {
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(w, y);
-                ctx.stroke();
+    function desenharResultadoNaImagem() {
+        if (!ultimaImagemWarped) {
+            if (currentImageData) {
+                let img = new Image();
+                img.onload = () => {
+                    const ctx = resultCanvas.getContext('2d');
+                    resultCanvas.width = img.width;
+                    resultCanvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = currentImageData;
             }
-            
-            for (const x of grid.linhasV) {
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, h);
-                ctx.stroke();
-            }
-            
-            ctx.setLineDash([]);
+            return;
         }
-        
-        if (resultado.tabelaRect) {
-            const rect = resultado.tabelaRect;
-            ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(rect.x, rect.y, rect.w, rect.h);
-        }
-        
-        if (resultado.circles) {
-            for (const circle of resultado.circles) {
-                const cor = circle.filtrado ? 'rgba(148, 163, 184, 0.3)' : 'rgba(59, 130, 246, 0.4)';
-                const borda = circle.filtrado ? 'rgba(148, 163, 184, 0.5)' : 'rgba(59, 130, 246, 0.7)';
-                
-                ctx.beginPath();
-                ctx.arc(circle.x, circle.y, circle.raio, 0, 2 * Math.PI);
-                ctx.fillStyle = cor;
-                ctx.fill();
-                ctx.strokeStyle = borda;
-                ctx.lineWidth = circle.filtrado ? 1 : 1.5;
-                ctx.stroke();
-                
-                if (!circle.filtrado) {
-                    const confianca = circle.confianca || 0;
-                    ctx.fillStyle = 'rgba(59, 130, 246, 0.8)';
-                    ctx.font = '9px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'bottom';
-                    ctx.fillText(Math.round(confianca * 100) + '%', circle.x, circle.y - circle.raio - 2);
-                    
-                    // Barra de confiança
-                    const barWidth = circle.raio * 1.2;
-                    const barHeight = 3;
-                    const barX = circle.x - barWidth/2;
-                    const barY = circle.y + circle.raio + 4;
-                    
-                    ctx.fillStyle = 'rgba(226, 232, 240, 0.5)';
-                    ctx.fillRect(barX, barY, barWidth, barHeight);
-                    
-                    ctx.fillStyle = confianca > 0.6 ? '#10b981' : confianca > 0.4 ? '#eab308' : '#ef4444';
-                    ctx.fillRect(barX, barY, barWidth * Math.min(1, confianca), barHeight);
-                }
-            }
-        }
-        
-        if (resultado.questoes) {
-            for (const q of resultado.questoes) {
-                for (const marc of q.marcacoes) {
-                    const cor = q.temDupla ? '#8b5cf6' : '#10b981';
-                    const raio = marc.circle.raio + 4;
+        let img = new Image();
+        img.onload = () => {
+            const ctx = resultCanvas.getContext('2d');
+            resultCanvas.width = img.width;
+            resultCanvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+            if (ultimosResultados) {
+                for (let i = 0; i < ultimosResultados.marcacoes.length; i++) {
+                    const marc = ultimosResultados.marcacoes[i];
+                    let cor = '#eab308';
+                    if (marc.resultado === 'acertou') cor = '#10b981';
+                    else if (marc.resultado === 'errou') cor = '#ef4444';
+                    else if (marc.resultado === 'marcacao_dupla') cor = '#8b5cf6';
                     
                     ctx.beginPath();
-                    ctx.arc(marc.x, marc.y, raio, 0, 2 * Math.PI);
-                    ctx.fillStyle = cor + '40';
+                    ctx.arc(marc.x, marc.y, 18, 0, 2 * Math.PI);
+                    ctx.fillStyle = cor + '60';
                     ctx.fill();
                     ctx.strokeStyle = cor;
-                    ctx.lineWidth = 3;
+                    ctx.lineWidth = 2;
                     ctx.stroke();
-                    
-                    ctx.fillStyle = '#fff';
+                    ctx.fillStyle = cor;
                     ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(marc.letra, marc.x, marc.y);
-                }
-            }
-        }
-    }
-    
-    // ==================== CORREÇÃO ====================
-    async function executarCorrecao() {
-        if (!currentImageData) { alert("Nenhuma imagem."); return; }
-        
-        const gabarito = obterGabaritoDaTela();
-        if (Object.keys(gabarito).length === 0) { alert("Preencha o gabarito!"); return; }
-        
-        mostrarLoading();
-        logArea.innerHTML += "\n🔍 Corrigindo prova...";
-        atualizarProgresso(10);
-        
-        try {
-            if (!dadosProcessamento) {
-                await processarImagem(currentImageData);
-            }
-            
-            atualizarProgresso(50);
-            
-            const questoes = dadosProcessamento ? dadosProcessamento.questoes : [];
-            
-            let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
-            const detalhes = [];
-            let htmlDetalhes = '';
-            
-            for (let i = 0; i < numQuestoes; i++) {
-                const q = questoes[i] || { marcacoes: [], temDupla: false, temMarca: false, numMarcacoes: 0 };
-                const numQ = i + 1;
-                const gab = gabarito[numQ];
-                
-                let status = 'nao_detectado';
-                let marcado = '?';
-                let msg = '';
-                let classe = 'nd';
-                let fillPct = 0;
-                let confianca = 0;
-                
-                if (q.temDupla) {
-                    status = 'dupla';
-                    marcado = '⚠️ DUPLA';
-                    duplas++;
-                    classe = 'dup';
-                    const letrasMarcadas = q.marcacoes.map(m => m.letra).join(', ');
-                    msg = `Q${numQ}: DUPLA (${letrasMarcadas}) - ANULADA`;
-                } else if (q.temMarca) {
-                    const letra = q.marcacoes[0].letra;
-                    fillPct = q.marcacoes[0].fillRatio || 0;
-                    confianca = q.marcacoes[0].confianca || 0;
-                    marcado = letra;
-                    if (gab && gab !== "") {
-                        if (gab === letra) {
-                            status = 'acertou';
-                            acertos++;
-                            classe = 'ok';
-                            msg = `Q${numQ}: ✓ ${letra} (${Math.round(fillPct*100)}%, conf: ${Math.round(confianca*100)}%) - ACERTOU`;
-                        } else {
-                            status = 'errou';
-                            erros++;
-                            classe = 'err';
-                            msg = `Q${numQ}: ✗ ${letra} (${Math.round(fillPct*100)}%, conf: ${Math.round(confianca*100)}%) - ERROU (gabarito: ${gab})`;
-                        }
-                    } else {
-                        status = 'errou';
-                        erros++;
-                        classe = 'err';
-                        msg = `Q${numQ}: ✗ ${letra} (${Math.round(fillPct*100)}%) - sem gabarito`;
-                    }
-                } else {
-                    status = 'nao_detectado';
-                    marcado = '?';
-                    naoDetectados++;
-                    classe = 'nd';
-                    msg = `Q${numQ}: ❓ Não detectado`;
-                }
-                
-                detalhes.push({
-                    questao: numQ,
-                    status: status,
-                    marcado: marcado,
-                    gabarito: gab || '-',
-                    msg: msg,
-                    fillPct: fillPct,
-                    confianca: confianca
-                });
-                
-                htmlDetalhes += `<div class="${classe}">${msg}</div>`;
-                logArea.innerHTML += `\n${msg}`;
-            }
-            
-            atualizarProgresso(90);
-            
-            ultimosResultados = { detalhes, acertos, erros, duplas, naoDetectados };
-            
-            let percentual = (acertos / numQuestoes) * 100;
-            let nota = (acertos/numQuestoes*10).toFixed(1);
-            scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
-            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} dupla(s)<br>⚪ ${naoDetectados} não detectado(s)`;
-            statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
-                <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
-                <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
-            
-            resultadoDetalhado.innerHTML = htmlDetalhes;
-            resultArea.style.display = 'block';
-            
-            desenharResultadoFinal();
-            
-            atualizarProgresso(100);
-            setTimeout(() => atualizarProgresso(0), 1000);
-            
-            statusDeteccao.innerHTML = `✅ Correção concluída! ${acertos} acertos, ${erros} erros, ${duplas} duplas`;
-            statusDeteccao.className = 'status-deteccao';
-            
-        } catch (err) {
-            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
-            alert(`Erro: ${err.message}`);
-            statusDeteccao.innerHTML = '❌ Erro na correção: ' + err.message;
-            statusDeteccao.className = 'status-deteccao error';
-        } finally {
-            esconderLoading();
-        }
-    }
-    
-    function desenharResultadoFinal() {
-        if (!ultimaImagemProcessada || !ultimosResultados) return;
-        
-        const ctx = resultCanvas.getContext('2d');
-        const img = new Image();
-        img.src = ultimaImagemProcessada;
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
-            
-            const w = resultCanvas.width;
-            const h = resultCanvas.height;
-            
-            let linhasH = null;
-            if (dadosProcessamento && dadosProcessamento.gridInfo) {
-                linhasH = dadosProcessamento.gridInfo.linhasH;
-            }
-            
-            for (const det of ultimosResultados.detalhes) {
-                let y;
-                if (linhasH && det.questao <= linhasH.length) {
-                    y = (linhasH[det.questao - 1] + linhasH[det.questao]) / 2;
-                } else {
-                    y = (det.questao - 0.5) * (h / numQuestoes);
-                }
-                
-                let cor, simbolo;
-                switch(det.status) {
-                    case 'acertou': cor = '#10b981'; simbolo = '✓'; break;
-                    case 'errou': cor = '#ef4444'; simbolo = '✗'; break;
-                    case 'dupla': cor = '#8b5cf6'; simbolo = '⚠'; break;
-                    default: cor = '#eab308'; simbolo = '?'; break;
-                }
-                
-                ctx.beginPath();
-                ctx.arc(25, y, 20, 0, 2 * Math.PI);
-                ctx.fillStyle = cor + '80';
-                ctx.fill();
-                ctx.strokeStyle = cor;
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
-                
-                ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(simbolo, 25, y);
-                
-                ctx.fillStyle = '#1e293b';
-                ctx.font = 'bold 13px Arial';
-                ctx.textAlign = 'left';
-                ctx.textBaseline = 'middle';
-                const marcado = det.marcado || '?';
-                const pct = det.fillPct ? ` ${Math.round(det.fillPct*100)}%` : '';
-                const conf = det.confianca ? ` (${Math.round(det.confianca*100)}%)` : '';
-                ctx.fillText(`Q${det.questao}: ${marcado}${pct}${conf}`, 55, y);
-                
-                if (det.gabarito && det.gabarito !== '-') {
-                    ctx.fillStyle = '#64748b';
-                    ctx.font = '11px Arial';
-                    ctx.textAlign = 'right';
-                    ctx.fillText(`Gab: ${det.gabarito}`, w - 15, y);
-                }
-                
-                // Barra de confiança
-                if (det.confianca) {
-                    const barX = 55;
-                    const barY = y + 18;
-                    const barWidth = 80;
-                    const barHeight = 3;
-                    
-                    ctx.fillStyle = 'rgba(226, 232, 240, 0.5)';
-                    ctx.fillRect(barX, barY, barWidth, barHeight);
-                    
-                    const corConf = det.confianca > 0.6 ? '#10b981' : det.confianca > 0.4 ? '#eab308' : '#ef4444';
-                    ctx.fillStyle = corConf;
-                    ctx.fillRect(barX, barY, barWidth * Math.min(1, det.confianca), barHeight);
+                    ctx.fillText(marc.marcado, marc.x-5, marc.y+5);
                 }
             }
         };
+        img.src = ultimaImagemWarped;
     }
     
-    // ==================== FUNÇÕES DO GABARITO ====================
+    // Gerador do cartão (SEM MARCADORES)
     function gerarCartaoOMR(titulo, qtd, altCount) {
         const letrasUsadas = letras.slice(0, altCount);
         
@@ -1544,6 +780,7 @@
         for (let i = 1; i <= qtd; i++) {
             html += `<tr><td style="font-weight:bold;">${i}</td>`;
             for (let j = 0; j < altCount; j++) {
+                // SEM MARCADORES
                 html += `<td style="position:relative;"><div class="circle-omr"></div></td>`;
             }
             html += `</tr>`;
@@ -1637,85 +874,217 @@
         logArea.innerHTML += "\n📋 Gabarito preenchido com todas 'A'";
     }
     
-    function resetarCorrecao() {
-        currentImageData = null;
-        ultimosResultados = null;
-        ultimaImagemProcessada = null;
-        dadosProcessamento = null;
-        resultArea.style.display = 'none';
-        const ctx = resultCanvas.getContext('2d');
-        ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-        statusDeteccao.textContent = '⏳ Aguardando nova imagem...';
-        statusDeteccao.className = 'status-deteccao';
-        debugInfo.style.display = 'none';
-        logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova!";
-        alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.");
-    }
+    resetGabaritoBtn.addEventListener('click', preencherTodasA);
+    validarGabaritoBtn.addEventListener('click', () => { const g = obterGabaritoDaTela(); alert(`Gabarito: ${Object.keys(g).length}/${numQuestoes} questões preenchidas`); });
     
-    function toggleGrid() {
-        mostrarGrid = !mostrarGrid;
-        mostrarGridBtn.textContent = mostrarGrid ? '📐 Ocultar Grid' : '📐 Mostrar Grid';
-        if (dadosProcessamento && ultimaImagemProcessada) {
-            desenharResultadoProcessado(dadosProcessamento);
-            if (ultimosResultados) {
-                desenharResultadoFinal();
-            }
+    // ============================================================
+    // CORREÇÃO PRINCIPAL (MODIFICADA COM DETECÇÃO AUTOMÁTICA)
+    // ============================================================
+    async function executarCorrecao() {
+        if (!currentImageData) { alert("Nenhuma imagem."); return; }
+        
+        // 🔥 DETECÇÃO AUTOMÁTICA se não estiver definida
+        if (!pontosDefinidos.every(v => v === true)) {
+            logArea.innerHTML += "\n🔍 Detectando vértices automaticamente...";
+            await detectarVerticesAutomaticamente(currentImageData);
+            desenharResultadoNaImagem();
         }
-    }
-    
-    function toggleDebug() {
-        mostrarDebug = !mostrarDebug;
-        debugInfo.style.display = mostrarDebug ? 'block' : 'none';
-        if (mostrarDebug && dadosProcessamento) {
-            let debugText = '=== DADOS OMR PRO ===\n';
-            debugText += `Folha encontrada: ${dadosProcessamento.folhaEncontrada ? 'SIM' : 'NÃO'}\n`;
-            debugText += `Tabela detectada: ${dadosProcessamento.tabelaRect ? 'SIM' : 'NÃO'}\n`;
-            debugText += `Bolhas totais: ${dadosProcessamento.circles ? dadosProcessamento.circles.length : 0}\n`;
-            debugText += `Bolhas válidas: ${dadosProcessamento.circlesValidos ? dadosProcessamento.circlesValidos.length : 0}\n`;
-            debugText += `Questões processadas: ${dadosProcessamento.questoes ? dadosProcessamento.questoes.length : 0}\n\n`;
+        
+        // Verifica se ainda não foram definidos
+        if (!pontosDefinidos.every(v => v === true)) {
+            alert("Não foi possível detectar os vértices automaticamente. Tente uma foto melhor.");
+            return;
+        }
+        
+        const gabarito = obterGabaritoDaTela();
+        if (Object.keys(gabarito).length === 0) { alert("Preencha o gabarito!"); return; }
+        if (!cvReady) { alert("Aguarde OpenCV."); return; }
+        
+        mostrarLoading();
+        logArea.innerHTML += "\n🔍 Corrigindo prova...";
+        const startTime = performance.now();
+        
+        try {
+            let img = new Image(); 
+            img.src = currentImageData;
+            await new Promise((resolve) => { img.onload = resolve; });
             
-            if (dadosProcessamento.tabelaRect) {
-                debugText += '=== TABELA ===\n';
-                const r = dadosProcessamento.tabelaRect;
-                debugText += `Posição: (${r.x}, ${r.y}) ${r.w}x${r.h}\n\n`;
+            let src = cv.imread(img);
+            
+            let scale = 1;
+            let maxDim = 1000;
+            if (src.cols > maxDim || src.rows > maxDim) {
+                scale = maxDim / Math.max(src.cols, src.rows);
+                let newWidth = Math.floor(src.cols * scale);
+                let newHeight = Math.floor(src.rows * scale);
+                let resized = new cv.Mat();
+                cv.resize(src, resized, new cv.Size(newWidth, newHeight));
+                src.delete();
+                src = resized;
             }
             
-            if (dadosProcessamento.gridInfo) {
-                debugText += '=== GRID ===\n';
-                debugText += `Linhas H: ${dadosProcessamento.gridInfo.linhasH.join(', ')}\n`;
-                debugText += `Linhas V: ${dadosProcessamento.gridInfo.linhasV.join(', ')}\n\n`;
-            }
+            let ptsAbs = pontos.map(p => ({ x: p.x * src.cols, y: p.y * src.rows }));
             
-            if (dadosProcessamento.questoes) {
-                debugText += '=== MARCAÇÕES ===\n';
-                for (const q of dadosProcessamento.questoes) {
-                    debugText += `Q${q.questao}: ${q.marcacoes.map(m => `${m.letra}(${Math.round(m.fillRatio*100)}%, conf:${Math.round(m.confianca*100)}%)`).join(', ') || 'vazio'}\n`;
+            const DW = 800, DH = 1000;
+            
+            let srcTri = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                ptsAbs[0].x, ptsAbs[0].y, ptsAbs[1].x, ptsAbs[1].y,
+                ptsAbs[2].x, ptsAbs[2].y, ptsAbs[3].x, ptsAbs[3].y
+            ]);
+            let dstTri = cv.matFromArray(4, 1, cv.CV_32FC2, [0, 0, DW, 0, DW, DH, 0, DH]);
+            let M = cv.getPerspectiveTransform(srcTri, dstTri);
+            let warped = new cv.Mat();
+            cv.warpPerspective(src, warped, M, new cv.Size(DW, DH));
+            
+            // PRÉ-PROCESSAMENTO MELHORADO
+            let binary = preprocessarImagem(warped);
+            
+            const rows = numQuestoes, cols = numAlternativas;
+            let cellHeight = DH / rows;
+            let cellWidth = DW / cols;
+            let marginX = cellWidth * 0.12;
+            let marginY = cellHeight * 0.12;
+            let innerWidth = cellWidth - (marginX * 2);
+            let innerHeight = cellHeight - (marginY * 2);
+            
+            let respostasAluno = {};
+            let posicoes = {};
+            let statusQuestao = {};
+            
+            for (let r = 0; r < rows; r++) {
+                let scores = [];
+                
+                for (let c = 0; c < cols; c++) {
+                    let x = c * cellWidth + marginX;
+                    let y = r * cellHeight + marginY;
+                    
+                    if (x + innerWidth > DW) x = DW - innerWidth;
+                    if (y + innerHeight > DH) y = DH - innerHeight;
+                    
+                    let cell = binary.roi(new cv.Rect(Math.floor(x), Math.floor(y), Math.floor(innerWidth), Math.floor(innerHeight)));
+                    let nz = cv.countNonZero(cell);
+                    let area = innerWidth * innerHeight;
+                    let fillPercent = nz / area;
+                    
+                    scores.push(fillPercent);
+                    cell.delete();
+                }
+                
+                // Encontra a melhor alternativa
+                let maxScore = Math.max(...scores);
+                let maxIndex = scores.indexOf(maxScore);
+                let sortedScores = [...scores].sort((a, b) => b - a);
+                let secondMax = sortedScores.length > 1 ? sortedScores[1] : 0;
+                
+                let threshold = 0.08;
+                let ratioThreshold = 0.6;
+                
+                statusQuestao[r+1] = 'nao_detectado';
+                
+                if (maxScore > threshold) {
+                    if (secondMax / maxScore < ratioThreshold) {
+                        let letra = letras[maxIndex];
+                        respostasAluno[r+1] = letra;
+                        statusQuestao[r+1] = 'marcado';
+                        posicoes[r+1] = { 
+                            x: (maxIndex * cellWidth) + (cellWidth/2), 
+                            y: (r * cellHeight) + (cellHeight/2), 
+                            letra: letra 
+                        };
+                        logArea.innerHTML += `\n✓ Q${r+1}: Detectado ${letra} (${Math.round(maxScore*100)}%)`;
+                    } else {
+                        statusQuestao[r+1] = 'marcacao_dupla';
+                        logArea.innerHTML += `\n⚠️ Q${r+1}: Marcação dupla - ANULADA`;
+                    }
+                } else {
+                    logArea.innerHTML += `\n⚠️ Q${r+1}: Não detectado`;
                 }
             }
             
-            debugInfo.textContent = debugText;
+            let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
+            let marcacoes = [];
+            
+            for (let i = 1; i <= numQuestoes; i++) {
+                let resultado = 'nao_detectado';
+                let marcado = '?';
+                
+                if (statusQuestao[i] === 'marcado' && respostasAluno[i]) {
+                    marcado = respostasAluno[i];
+                    if (gabarito[i] && gabarito[i] !== "") {
+                        if (gabarito[i] === respostasAluno[i]) {
+                            resultado = 'acertou';
+                            acertos++;
+                        } else {
+                            resultado = 'errou';
+                            erros++;
+                        }
+                    } else {
+                        resultado = 'errou';
+                        erros++;
+                    }
+                } else if (statusQuestao[i] === 'marcacao_dupla') {
+                    resultado = 'marcacao_dupla';
+                    marcado = '⚠️ DUPLA';
+                    duplas++;
+                } else {
+                    resultado = 'nao_detectado';
+                    marcado = '?';
+                    naoDetectados++;
+                }
+                
+                if (posicoes[i]) {
+                    marcacoes.push({ x: posicoes[i].x, y: posicoes[i].y, marcado: marcado, resultado: resultado });
+                } else {
+                    marcacoes.push({ x: DW/2, y: ((i-1)*cellHeight)+(cellHeight/2), marcado: marcado, resultado: resultado });
+                }
+            }
+            
+            ultimosResultados = { marcacoes, acertos, erros, duplas, naoDetectados };
+            
+            let canvasWarp = document.createElement('canvas');
+            canvasWarp.width = warped.cols;
+            canvasWarp.height = warped.rows;
+            cv.imshow(canvasWarp, warped);
+            ultimaImagemWarped = canvasWarp.toDataURL('image/jpeg', 0.9);
+            desenharResultadoNaImagem();
+            
+            let percentual = (acertos / numQuestoes) * 100;
+            let nota = (acertos/numQuestoes*10).toFixed(1);
+            scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
+            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} marcação(ões) dupla(as)<br>⚪ ${naoDetectados} não detectado(s)`;
+            statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
+                <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
+                <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
+            resultArea.style.display = 'block';
+            
+            src.delete(); srcTri.delete(); dstTri.delete(); M.delete(); warped.delete(); binary.delete();
+        } catch(err) {
+            logArea.innerHTML += `\n❌ Erro: ${err.message}`;
+            alert(`Erro: ${err.message}`);
+        } finally {
+            esconderLoading();
         }
     }
     
-    // ==================== EVENTOS ====================
+    // Eventos principais
     captureBtn.addEventListener('click', capturarFoto);
     toggleCameraBtn.addEventListener('click', toggleCamera);
     fileUpload.addEventListener('change', (e) => { if(e.target.files[0]) carregarUpload(e.target.files[0]); });
     corrigirBtn.addEventListener('click', executarCorrecao);
-    mostrarGridBtn.addEventListener('click', toggleGrid);
-    debugBtn.addEventListener('click', toggleDebug);
     btnAplicarConfig.addEventListener('click', atualizarCartaoVisual);
     btnGerarPDF.addEventListener('click', gerarPDF);
     novaProvaBtn.addEventListener('click', resetarCorrecao);
-    resetGabaritoBtn.addEventListener('click', preencherTodasA);
-    validarGabaritoBtn.addEventListener('click', () => { const g = obterGabaritoDaTela(); alert(`Gabarito: ${Object.keys(g).length}/${numQuestoes} questões preenchidas`); });
     
+    // Garantir que ao clicar no botão HOME a câmera seja desligada
     const homeButton = document.getElementById('homeButtonWithCameraOff');
     if (homeButton) {
-        homeButton.addEventListener('click', () => desligarCamera());
+        homeButton.addEventListener('click', (e) => {
+            desligarCamera();
+        });
     }
     
-    // ==================== INICIALIZAÇÃO ====================
     iniciarCamera();
     atualizarCartaoVisual();
 </script>
