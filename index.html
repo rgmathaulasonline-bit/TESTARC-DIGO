@@ -275,19 +275,27 @@
             border-radius: 10px;
         }
         
-        .grid-overlay {
-            position: relative;
-            display: inline-block;
-        }
-        .grid-overlay canvas {
-            display: block;
-        }
-        
         .btn-pequeno {
             padding: 5px 12px;
             font-size: 0.75rem;
             margin: 2px;
         }
+        
+        .resultado-detalhado {
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.85rem;
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 10px;
+            border: 1px solid #e2e8f0;
+        }
+        .resultado-detalhado .ok { color: #10b981; font-weight: bold; }
+        .resultado-detalhado .err { color: #ef4444; font-weight: bold; }
+        .resultado-detalhado .dup { color: #8b5cf6; font-weight: bold; }
+        .resultado-detalhado .nd { color: #eab308; font-weight: bold; }
     </style>
     <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
 </head>
@@ -328,9 +336,9 @@
             <li><strong>O sistema detecta AUTOMATICAMENTE</strong> os círculos marcados em cada questão</li>
             <li><strong>Regras:</strong> 
                 <ul>
-                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha</li>
+                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha (questão)</li>
                     <li>❌ Não pontua se houver <strong>DUAS ou mais</strong> marcações na mesma linha</li>
-                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong></li>
+                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong> (alternativa incorreta)</li>
                 </ul>
             </li>
             <li>Clique em <strong>"CORRIGIR PROVA"</strong> para ver o resultado</li>
@@ -414,6 +422,7 @@
                 <div class="score" id="scoreDisplay">0/0</div>
                 <div id="gradeDetail"></div>
                 <div class="stats" id="statsArea"></div>
+                <div id="resultadoDetalhado" class="resultado-detalhado"></div>
                 <div class="result-buttons">
                     <button id="novaProvaBtn" class="btn-nova-prova">📝 NOVA PROVA</button>
                 </div>
@@ -459,6 +468,7 @@
     let ultimaImagemProcessada = null;
     let mostrarGrid = false;
     let gridInfo = null;
+    let marcacoesDetectadas = [];
     
     // Elementos DOM
     const video = document.getElementById('video');
@@ -472,6 +482,7 @@
     const resultArea = document.getElementById('resultArea');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const gradeDetail = document.getElementById('gradeDetail');
+    const resultadoDetalhado = document.getElementById('resultadoDetalhado');
     const logArea = document.getElementById('logArea');
     const resetGabaritoBtn = document.getElementById('resetGabaritoBtn');
     const validarGabaritoBtn = document.getElementById('validarGabaritoBtn');
@@ -539,8 +550,8 @@
     
     function toggleCamera() { cameraActive ? desligarCamera() : iniciarCamera(); }
     
-    // ==================== DETECÇÃO AUTOMÁTICA ====================
-    function detectarMarcacoes(imageData) {
+    // ==================== DETECÇÃO AUTOMÁTICA DE CÍRCULOS ====================
+    function detectarCirculos(imageData) {
         return new Promise((resolve, reject) => {
             try {
                 const img = new Image();
@@ -566,7 +577,7 @@
                         const imageDataObj = ctx.getImageData(0, 0, w, h);
                         const data = imageDataObj.data;
                         
-                        // Converter para escala de cinza e binarizar
+                        // Converter para escala de cinza
                         const gray = new Uint8Array(w * h);
                         for (let i = 0; i < data.length; i += 4) {
                             const r = data[i];
@@ -575,26 +586,21 @@
                             gray[i/4] = 0.299 * r + 0.587 * g + 0.114 * b;
                         }
                         
-                        // Binarização com Otsu adaptativo
+                        // Binarização com Otsu
                         const threshold = calcularOtsu(gray);
                         const binary = new Uint8Array(w * h);
                         for (let i = 0; i < gray.length; i++) {
                             binary[i] = gray[i] < threshold ? 0 : 255;
                         }
                         
-                        // Detectar círculos usando Hough Circle Transform (simplificado)
-                        // Vamos usar uma abordagem baseada em contornos
-                        const circles = detectarCirculos(binary, w, h);
-                        
-                        // Organizar por linhas (questões)
-                        const questoes = organizarPorLinhas(circles, numQuestoes, numAlternativas, w, h);
+                        // Detectar círculos usando análise de componentes conectados
+                        const circles = encontrarCirculos(binary, w, h);
                         
                         resolve({
-                            questoes,
+                            circles,
                             w,
                             h,
-                            binary,
-                            circles
+                            binary
                         });
                     } catch (err) {
                         reject(err);
@@ -646,18 +652,18 @@
         return threshold;
     }
     
-    function detectarCirculos(binary, w, h) {
+    function encontrarCirculos(binary, w, h) {
         const circles = [];
-        const minRadius = Math.min(w, h) * 0.015;
+        const minRadius = Math.min(w, h) * 0.012;
         const maxRadius = Math.min(w, h) * 0.045;
-        const step = 2;
-        
-        // Usar uma abordagem de template matching para círculos
-        // Para simplificar, vamos procurar regiões escuras (preenchidas)
         const visited = new Uint8Array(w * h);
         
-        for (let y = 0; y < h; y += step) {
-            for (let x = 0; x < w; x += step) {
+        // Tamanho mínimo da região para considerar um círculo
+        const minArea = Math.PI * minRadius * minRadius * 0.3;
+        const maxArea = Math.PI * maxRadius * maxRadius * 1.5;
+        
+        for (let y = 0; y < h; y++) {
+            for (let x = 0; x < w; x++) {
                 const idx = y * w + x;
                 if (visited[idx] || binary[idx] === 255) continue;
                 
@@ -666,9 +672,21 @@
                 const stack = [{x, y}];
                 visited[idx] = 1;
                 
+                let minX = x, maxX = x, minY = y, maxY = y;
+                let sumX = 0, sumY = 0;
+                let count = 0;
+                
                 while (stack.length > 0) {
                     const p = stack.pop();
                     region.push(p);
+                    sumX += p.x;
+                    sumY += p.y;
+                    count++;
+                    
+                    if (p.x < minX) minX = p.x;
+                    if (p.x > maxX) maxX = p.x;
+                    if (p.y < minY) minY = p.y;
+                    if (p.y > maxY) maxY = p.y;
                     
                     const neighbors = [
                         {x: p.x-1, y: p.y}, {x: p.x+1, y: p.y},
@@ -688,54 +706,58 @@
                     }
                 }
                 
-                // Analisar a região
-                if (region.length > 20) {
-                    let sumX = 0, sumY = 0;
-                    let minX = w, maxX = 0, minY = h, maxY = 0;
+                const area = count;
+                const cx = sumX / count;
+                const cy = sumY / count;
+                const width = maxX - minX + 1;
+                const height = maxY - minY + 1;
+                const raio = (width + height) / 4;
+                
+                // Verificar se a região é um círculo preenchido
+                if (area >= minArea && area <= maxArea) {
+                    // Verificar circularidade: proporção entre área e bounding box
+                    const bboxArea = width * height;
+                    const ratio = area / bboxArea;
                     
-                    for (const p of region) {
-                        sumX += p.x;
-                        sumY += p.y;
-                        if (p.x < minX) minX = p.x;
-                        if (p.x > maxX) maxX = p.x;
-                        if (p.y < minY) minY = p.y;
-                        if (p.y > maxY) maxY = p.y;
-                    }
+                    // Verificar preenchimento interno
+                    let darkPixels = 0;
+                    let totalPixels = 0;
+                    const radius = Math.max(width, height) / 2;
+                    const centerX = (minX + maxX) / 2;
+                    const centerY = (minY + maxY) / 2;
                     
-                    const cx = sumX / region.length;
-                    const cy = sumY / region.length;
-                    const width = maxX - minX;
-                    const height = maxY - minY;
-                    const area = region.length;
-                    
-                    // Verificar se é aproximadamente circular
-                    const raio = (width + height) / 4;
-                    const areaEsperada = Math.PI * raio * raio;
-                    const razaoArea = area / areaEsperada;
-                    
-                    // Verificar se está dentro do tamanho esperado
-                    if (raio >= minRadius && raio <= maxRadius && razaoArea > 0.3 && razaoArea < 1.5) {
-                        // Verificar se é preenchido (proporção de pixels escuros na bounding box)
-                        let darkCount = 0;
-                        const bboxArea = width * height;
-                        for (let y2 = minY; y2 <= maxY; y2++) {
-                            for (let x2 = minX; x2 <= maxX; x2++) {
-                                if (binary[y2 * w + x2] === 0) darkCount++;
+                    // Verificar se a região é bem preenchida (não é apenas um contorno)
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        for (let dx = -radius; dx <= radius; dx++) {
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist <= radius * 0.8) {
+                                const px = Math.round(centerX + dx);
+                                const py = Math.round(centerY + dy);
+                                if (px >= 0 && px < w && py >= 0 && py < h) {
+                                    totalPixels++;
+                                    if (binary[py * w + px] === 0) darkPixels++;
+                                }
                             }
                         }
-                        const fillRatio = darkCount / bboxArea;
-                        
-                        if (fillRatio > 0.2) {
-                            circles.push({
-                                x: cx,
-                                y: cy,
-                                raio: raio,
-                                area: area,
-                                fillRatio: fillRatio,
-                                width: width,
-                                height: height
-                            });
-                        }
+                    }
+                    
+                    const fillRatio = totalPixels > 0 ? darkPixels / totalPixels : 0;
+                    
+                    // Critérios para aceitar como círculo preenchido
+                    if (ratio > 0.3 && fillRatio > 0.25 && raio >= minRadius && raio <= maxRadius) {
+                        circles.push({
+                            x: cx,
+                            y: cy,
+                            raio: raio,
+                            area: area,
+                            fillRatio: fillRatio,
+                            width: width,
+                            height: height,
+                            minX: minX,
+                            maxX: maxX,
+                            minY: minY,
+                            maxY: maxY
+                        });
                     }
                 }
             }
@@ -744,47 +766,65 @@
         return circles;
     }
     
-    function organizarPorLinhas(circles, numQ, numAlt, w, h) {
+    // ==================== ORGANIZAR POR LINHAS E COLUNAS ====================
+    function organizarGabarito(circles, w, h) {
         if (circles.length === 0) return [];
         
-        // Ordenar por Y (linha)
+        // Ordenar círculos por Y (linha) - LINHAS SÃO HORIZONTAIS
         circles.sort((a, b) => a.y - b.y);
         
-        // Dividir em grupos de linhas
-        const alturaLinha = h / numQ;
+        // Dividir em grupos por linha (questões)
+        const alturaLinha = h / numQuestoes;
         const questoes = [];
         
-        for (let q = 0; q < numQ; q++) {
+        for (let q = 0; q < numQuestoes; q++) {
             const yMin = q * alturaLinha;
             const yMax = (q + 1) * alturaLinha;
             
+            // Círculos nesta linha
             const circulosLinha = circles.filter(c => c.y >= yMin && c.y < yMax);
             
-            // Ordenar por X (coluna)
+            // Ordenar por X (coluna) - COLUNAS SÃO VERTICAIS (alternativas)
             circulosLinha.sort((a, b) => a.x - b.x);
             
             const marcacoes = [];
-            const larguraColuna = w / numAlt;
+            const larguraColuna = w / numAlternativas;
             
             for (const circle of circulosLinha) {
-                const col = Math.floor(circle.x / larguraColuna);
-                if (col >= 0 && col < numAlt) {
+                // Determinar qual coluna (alternativa) este círculo pertence
+                let col = Math.floor(circle.x / larguraColuna);
+                if (col >= numAlternativas) col = numAlternativas - 1;
+                if (col < 0) col = 0;
+                
+                // Verificar se já temos uma marcação nesta coluna
+                const existente = marcacoes.find(m => m.col === col);
+                if (existente) {
+                    // Se já tem, manter a com maior preenchimento
+                    if (circle.fillRatio > existente.fillRatio) {
+                        existente.circle = circle;
+                        existente.fillRatio = circle.fillRatio;
+                    }
+                } else {
                     marcacoes.push({
                         col: col,
                         letra: letras[col],
+                        circle: circle,
+                        fillRatio: circle.fillRatio,
                         x: circle.x,
-                        y: circle.y,
-                        raio: circle.raio,
-                        fillRatio: circle.fillRatio
+                        y: circle.y
                     });
                 }
             }
             
+            // Filtrar marcações com baixo preenchimento
+            const marcacoesFiltradas = marcacoes.filter(m => m.fillRatio > 0.15);
+            
             questoes.push({
                 questao: q + 1,
-                marcacoes: marcacoes,
-                temDupla: marcacoes.length > 1,
-                temMarca: marcacoes.length === 1
+                marcacoes: marcacoesFiltradas,
+                numMarcacoes: marcacoesFiltradas.length,
+                temMarca: marcacoesFiltradas.length === 1,
+                temDupla: marcacoesFiltradas.length > 1
             });
         }
         
@@ -818,6 +858,7 @@
     async function processarImagem(imageData) {
         currentImageData = imageData;
         mostrarGrid = false;
+        mostrarGridBtn.textContent = '📐 Mostrar Grid';
         
         // Mostrar a imagem no canvas
         const img = new Image();
@@ -829,18 +870,29 @@
         resultCanvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         
-        statusDeteccao.textContent = '🔍 Detectando marcações...';
+        statusDeteccao.textContent = '🔍 Detectando círculos...';
         statusDeteccao.className = 'status-deteccao';
         atualizarProgresso(10);
         
         try {
-            const resultado = await detectarMarcacoes(imageData);
-            atualizarProgresso(80);
+            const resultado = await detectarCirculos(imageData);
+            atualizarProgresso(50);
             
-            gridInfo = resultado;
+            const circles = resultado.circles;
+            const w = resultado.w;
+            const h = resultado.h;
             
-            // Analisar resultados
-            const questoes = resultado.questoes;
+            // Organizar por linhas e colunas
+            const questoes = organizarGabarito(circles, w, h);
+            gridInfo = {
+                questoes,
+                circles,
+                w,
+                h
+            };
+            marcacoesDetectadas = questoes;
+            
+            // Contar resultados
             const qtdDetectadas = questoes.filter(q => q.temMarca).length;
             const qtdDuplas = questoes.filter(q => q.temDupla).length;
             
@@ -852,16 +904,16 @@
                 statusDeteccao.className = 'status-deteccao';
                 
                 // Mostrar as marcações na imagem
-                desenharMarcacoes(resultado);
+                desenharMarcacoes(gridInfo);
             } else {
-                statusDeteccao.innerHTML = '⚠️ Nenhuma marcação detectada. Verifique a iluminação e o contraste.';
-                statusDeteccao.className = 'status-deteccao error';
+                statusDeteccao.innerHTML = `⚠️ Nenhuma marcação detectada (${circles.length} círculos encontrados). Verifique a iluminação.`;
+                statusDeteccao.className = 'status-deteccao warning';
             }
             
             atualizarProgresso(100);
             setTimeout(() => atualizarProgresso(0), 1000);
             
-            logArea.innerHTML += `\n🔍 Detectadas ${qtdDetectadas + qtdDuplas} questões com marcação`;
+            logArea.innerHTML += `\n🔍 Detectados ${circles.length} círculos, ${qtdDetectadas + qtdDuplas} questões com marcação`;
             
         } catch (err) {
             statusDeteccao.innerHTML = '❌ Erro na detecção: ' + err.message;
@@ -870,90 +922,83 @@
         }
     }
     
-    function desenharMarcacoes(resultado) {
+    function desenharMarcacoes(info) {
+        if (!currentImageData) return;
+        
         const ctx = resultCanvas.getContext('2d');
         const img = new Image();
         img.src = currentImageData;
         img.onload = () => {
             ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
             
-            const questoes = resultado.questoes;
+            const questoes = info.questoes;
             const w = resultCanvas.width;
             const h = resultCanvas.height;
+            const scaleX = w / info.w;
+            const scaleY = h / info.h;
             
             // Desenhar grid se ativado
             if (mostrarGrid) {
-                const numQ = numQuestoes;
-                const numAlt = numAlternativas;
-                const cellW = w / numAlt;
-                const cellH = h / numQ;
+                const cellW = w / numAlternativas;
+                const cellH = h / numQuestoes;
                 
                 ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
                 ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
                 
-                for (let q = 0; q <= numQ; q++) {
+                for (let q = 0; q <= numQuestoes; q++) {
                     ctx.beginPath();
                     ctx.moveTo(0, q * cellH);
                     ctx.lineTo(w, q * cellH);
                     ctx.stroke();
                 }
-                for (let a = 0; a <= numAlt; a++) {
+                for (let a = 0; a <= numAlternativas; a++) {
                     ctx.beginPath();
                     ctx.moveTo(a * cellW, 0);
                     ctx.lineTo(a * cellW, h);
                     ctx.stroke();
                 }
+                ctx.setLineDash([]);
             }
             
-            // Desenhar marcações detectadas
+            // Desenhar círculos detectados
+            for (const circle of info.circles) {
+                const x = circle.x * scaleX;
+                const y = circle.y * scaleY;
+                const raio = circle.raio * Math.min(scaleX, scaleY);
+                
+                ctx.beginPath();
+                ctx.arc(x, y, raio, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+            
+            // Desenhar marcações organizadas
             for (const q of questoes) {
                 for (const marc of q.marcacoes) {
-                    const x = marc.x * (resultCanvas.width / resultado.w);
-                    const y = marc.y * (resultCanvas.height / resultado.h);
-                    const raio = marc.raio * (resultCanvas.width / resultado.w);
+                    const x = marc.x * scaleX;
+                    const y = marc.y * scaleY;
+                    const raio = marc.circle.raio * Math.min(scaleX, scaleY);
                     
-                    const cor = q.temDupla ? '#8b5cf6' : '#3b82f6';
+                    const cor = q.temDupla ? '#8b5cf6' : '#10b981';
                     
                     ctx.beginPath();
-                    ctx.arc(x, y, raio, 0, 2 * Math.PI);
-                    ctx.fillStyle = cor + '60';
+                    ctx.arc(x, y, raio + 4, 0, 2 * Math.PI);
+                    ctx.fillStyle = cor + '40';
                     ctx.fill();
                     ctx.strokeStyle = cor;
-                    ctx.lineWidth = 2;
+                    ctx.lineWidth = 2.5;
                     ctx.stroke();
                     
                     ctx.fillStyle = '#fff';
-                    ctx.font = 'bold 12px Arial';
+                    ctx.font = 'bold 14px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
                     ctx.fillText(marc.letra, x, y);
                 }
-            }
-            
-            // Adicionar legenda de status
-            for (const q of questoes) {
-                const yPos = (q.questao - 0.5) * (h / numQuestoes);
-                const xPos = w - 30;
-                
-                let status = '❓';
-                let cor = '#eab308';
-                
-                if (q.temDupla) {
-                    status = '⚠️ DUPLA';
-                    cor = '#8b5cf6';
-                } else if (q.temMarca) {
-                    status = '✓';
-                    cor = '#10b981';
-                } else {
-                    status = '✗';
-                    cor = '#ef4444';
-                }
-                
-                ctx.fillStyle = cor;
-                ctx.font = 'bold 14px Arial';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(status, xPos, yPos);
             }
         };
     }
@@ -970,30 +1015,36 @@
         atualizarProgresso(10);
         
         try {
-            // Detectar marcações
-            const resultado = await detectarMarcacoes(currentImageData);
-            atualizarProgresso(60);
+            // Se não tiver gridInfo, processar imagem
+            if (!gridInfo) {
+                await processarImagem(currentImageData);
+            }
             
-            const questoes = resultado.questoes;
+            atualizarProgresso(50);
+            
+            const questoes = gridInfo ? gridInfo.questoes : [];
             
             // Corrigir
             let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
             const detalhes = [];
+            let htmlDetalhes = '';
             
             for (let i = 0; i < numQuestoes; i++) {
-                const q = questoes[i] || { marcacoes: [], temDupla: false, temMarca: false };
+                const q = questoes[i] || { marcacoes: [], temDupla: false, temMarca: false, numMarcacoes: 0 };
                 const numQ = i + 1;
                 const gab = gabarito[numQ];
                 
                 let status = 'nao_detectado';
                 let marcado = '?';
                 let msg = '';
+                let classe = 'nd';
                 
                 if (q.temDupla) {
                     status = 'dupla';
                     marcado = '⚠️ DUPLA';
                     duplas++;
-                    msg = `Q${numQ}: Dupla marcação - ANULADA`;
+                    classe = 'dup';
+                    msg = `Q${numQ}: DUPLA marcação (${q.marcacoes.map(m => m.letra).join(', ')}) - ANULADA`;
                 } else if (q.temMarca) {
                     const letra = q.marcacoes[0].letra;
                     marcado = letra;
@@ -1001,21 +1052,25 @@
                         if (gab === letra) {
                             status = 'acertou';
                             acertos++;
-                            msg = `Q${numQ}: ✓ ${letra} (acertou)`;
+                            classe = 'ok';
+                            msg = `Q${numQ}: ✓ ${letra} (ACERTOU)`;
                         } else {
                             status = 'errou';
                             erros++;
-                            msg = `Q${numQ}: ✗ ${letra} (errou - gabarito: ${gab})`;
+                            classe = 'err';
+                            msg = `Q${numQ}: ✗ ${letra} (ERROU - gabarito: ${gab})`;
                         }
                     } else {
                         status = 'errou';
                         erros++;
+                        classe = 'err';
                         msg = `Q${numQ}: ✗ ${letra} (sem gabarito)`;
                     }
                 } else {
                     status = 'nao_detectado';
                     marcado = '?';
                     naoDetectados++;
+                    classe = 'nd';
                     msg = `Q${numQ}: ❓ Não detectado`;
                 }
                 
@@ -1027,6 +1082,7 @@
                     msg: msg
                 });
                 
+                htmlDetalhes += `<div class="${classe}">${msg}</div>`;
                 logArea.innerHTML += `\n${msg}`;
             }
             
@@ -1046,6 +1102,8 @@
                 <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
                 <div class="stat-item"><div class="stat-value" style="color:#eab308;">${naoDetectados}</div><div class="stat-label">Ñ Detectados</div></div>
                 <div class="stat-item"><div class="stat-value">${nota}</div><div class="stat-label">Nota</div></div>`;
+            
+            resultadoDetalhado.innerHTML = htmlDetalhes;
             resultArea.style.display = 'block';
             
             // Desenhar resultado na imagem
@@ -1068,15 +1126,13 @@
     }
     
     function desenharResultadoFinal() {
-        if (!ultimaImagemProcessada) return;
+        if (!ultimaImagemProcessada || !ultimosResultados) return;
         
         const ctx = resultCanvas.getContext('2d');
         const img = new Image();
         img.src = ultimaImagemProcessada;
         img.onload = () => {
             ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
-            
-            if (!ultimosResultados) return;
             
             const w = resultCanvas.width;
             const h = resultCanvas.height;
@@ -1095,26 +1151,28 @@
                 
                 // Círculo de status
                 ctx.beginPath();
-                ctx.arc(30, y, 20, 0, 2 * Math.PI);
+                ctx.arc(30, y, 22, 0, 2 * Math.PI);
                 ctx.fillStyle = cor + '80';
                 ctx.fill();
                 ctx.strokeStyle = cor;
-                ctx.lineWidth = 2;
+                ctx.lineWidth = 2.5;
                 ctx.stroke();
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 16px Arial';
+                ctx.font = 'bold 18px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(simbolo, 30, y);
                 
-                // Texto da questão
+                // Texto da questão e marcação
                 ctx.fillStyle = '#1e293b';
                 ctx.font = 'bold 14px Arial';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`Q${det.questao}: ${det.marcado}`, 60, y);
+                const marcado = det.marcado || '?';
+                ctx.fillText(`Q${det.questao}: ${marcado}`, 65, y);
                 
+                // Gabarito
                 if (det.gabarito && det.gabarito !== '-') {
                     ctx.fillStyle = '#64748b';
                     ctx.font = '12px Arial';
@@ -1240,6 +1298,8 @@
         currentImageData = null;
         ultimosResultados = null;
         ultimaImagemProcessada = null;
+        gridInfo = null;
+        marcacoesDetectadas = [];
         resultArea.style.display = 'none';
         const ctx = resultCanvas.getContext('2d');
         ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
