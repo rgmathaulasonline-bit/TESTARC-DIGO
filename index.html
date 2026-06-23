@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Leitor de Gabarito RG Math - Auto</title>
+    <title>Leitor de Gabarito RG Math - Profissional</title>
     <style>
         * { box-sizing: border-box; font-family: system-ui, 'Segoe UI', sans-serif; }
         body { background: #eef2f5; margin: 0; padding: 20px; }
@@ -34,13 +34,14 @@
         .btn-red { background: #ef4444; }
         .btn-orange { background: #f97316; }
         .btn-info { background: #06b6d4; }
+        .btn-pink { background: #ec4899; }
         
         .two-columns { display: flex; flex-wrap: wrap; gap: 25px; margin-top: 20px; }
         .column { flex: 1; min-width: 300px; }
         .card { background: #f8fafc; border-radius: 24px; padding: 18px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
         .section-title { font-weight: 700; font-size: 1.2rem; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
         video, #imagePreview { width: 100%; border-radius: 20px; background: #0f172a; border: 2px solid #cbd5e1; max-height: 320px; object-fit: contain; }
-        #resultCanvas { width: 100%; border-radius: 20px; border: 2px solid #cbd5e1; background: #0f172a; }
+        #resultCanvas { width: 100%; border-radius: 20px; border: 2px solid #cbd5e1; background: #0f172a; cursor: crosshair; }
         
         .gabarito-grid { background: white; border-radius: 20px; border: 1px solid #cbd5e1; overflow-x: auto; }
         .gabarito-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
@@ -82,8 +83,8 @@
         .legenda-cor.amarelo { background: #eab308; }
         .legenda-cor.roxo { background: #8b5cf6; }
         .legenda-cor.azul { background: #3b82f6; }
+        .legenda-cor.laranja { background: #f97316; }
 
-        /* CABEÇALHO */
         .rg-header-container {
             background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
             padding: 20px 0 18px;
@@ -141,7 +142,6 @@
             .rg-header-container { padding: 10px 0 10px; }
         }
 
-        /* RODAPÉ */
         .rg-footer-container {
             background: linear-gradient(135deg, #0F2B5C 0%, #1E4A8A 50%, #2D6FC4 100%);
             padding: 32px 20px 28px;
@@ -296,6 +296,19 @@
         .resultado-detalhado .err { color: #ef4444; font-weight: bold; }
         .resultado-detalhado .dup { color: #8b5cf6; font-weight: bold; }
         .resultado-detalhado .nd { color: #eab308; font-weight: bold; }
+        
+        .debug-info {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 5px;
+            padding: 8px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            max-height: 150px;
+            overflow-y: auto;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
     </style>
     <script async src="https://cdn.jsdelivr.net/npm/opencv.js" onerror="console.error('Falha OpenCV');"></script>
 </head>
@@ -303,8 +316,8 @@
 
 <div class="loading" id="loadingIndicator">
     <div class="loading-spinner"></div>
-    <div>🔍 Processando...</div>
-    <div style="font-size: 12px; margin-top: 5px;">Detectando marcações no gabarito</div>
+    <div>🔍 Processando com OpenCV...</div>
+    <div style="font-size: 12px; margin-top: 5px;">Detectando folha e corrigindo perspectiva</div>
 </div>
 
 <header class="rg-header-container no-print">
@@ -324,21 +337,21 @@
         <a href="https://sites.google.com/view/rgmathprofrayltonguedes/home" target="_blank" class="btn-home" id="homeButtonWithCameraOff">🏠 HOME</a>
     </div>
     
-    <h1>📋 Leitor de Gabarito RG Math - Auto</h1>
+    <h1>📋 Leitor de Gabarito RG Math - Profissional</h1>
     
     <div class="instrucoes-iniciais no-print">
-        <h4>📌 Como usar - LEITURA AUTOMÁTICA:</h4>
+        <h4>📌 Como usar - LEITURA PROFISSIONAL:</h4>
         <ol>
             <li>Defina o <strong>Título da Prova</strong>, <strong>número de questões</strong> e <strong>alternativas</strong></li>
-            <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir os gabaritos</li>
+            <li>Clique em <strong>"APLICAR E GERAR CARTÃO"</strong> e depois <strong>"GERAR PDF"</strong> para imprimir</li>
             <li>No campo <strong>"Gabarito Oficial"</strong>, selecione as respostas corretas</li>
             <li>Tire uma foto do cartão preenchido ou envie uma imagem</li>
-            <li><strong>O sistema detecta AUTOMATICAMENTE</strong> os círculos marcados em cada questão</li>
+            <li><strong>O sistema detecta automaticamente</strong> a folha, corrige a perspectiva e localiza a tabela</li>
             <li><strong>Regras:</strong> 
                 <ul>
-                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha (questão)</li>
+                    <li>✅ Pontua se houver <strong>exatamente UMA</strong> marcação por linha</li>
                     <li>❌ Não pontua se houver <strong>DUAS ou mais</strong> marcações na mesma linha</li>
-                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong> (alternativa incorreta)</li>
+                    <li>❌ Não pontua se a marcação estiver na <strong>posição errada</strong></li>
                 </ul>
             </li>
             <li>Clique em <strong>"CORRIGIR PROVA"</strong> para ver o resultado</li>
@@ -377,7 +390,7 @@
                 
                 <div class="camera-info-banner">
                     <strong>📷 Informações sobre a câmera</strong>
-                    <p>✅ A câmera é ativada automaticamente. O sistema detecta automaticamente as marcações.</p>
+                    <p>✅ A câmera é ativada automaticamente. O sistema detecta a folha e corrige a perspectiva.</p>
                     <p>🏠 Ao clicar em HOME, a câmera será desligada.</p>
                 </div>
                 
@@ -390,7 +403,7 @@
                 <canvas id="canvas" style="display:none;"></canvas>
                 
                 <div id="statusDeteccao" class="status-deteccao">
-                    ⏳ Aguardando imagem para detectar marcações...
+                    ⏳ Aguardando imagem...
                 </div>
                 
                 <div class="progress-bar" id="progressBar">
@@ -403,6 +416,7 @@
                     <div class="legenda-item"><div class="legenda-cor amarelo"></div><span>Não detectado</span></div>
                     <div class="legenda-item"><div class="legenda-cor roxo"></div><span>Dupla/Anulada</span></div>
                     <div class="legenda-item"><div class="legenda-cor azul"></div><span>Marcação detectada</span></div>
+                    <div class="legenda-item"><div class="legenda-cor laranja"></div><span>Grid de leitura</span></div>
                 </div>
             </div>
             
@@ -412,7 +426,9 @@
                 <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
                     <button id="corrigirBtn" class="btn-green" style="flex:1; font-size:1.1rem;">✨ CORRIGIR PROVA</button>
                     <button id="mostrarGridBtn" class="btn-info btn-pequeno">📐 Mostrar Grid</button>
+                    <button id="debugBtn" class="btn-pink btn-pequeno">🐛 Debug</button>
                 </div>
+                <div id="debugInfo" class="debug-info" style="display:none;"></div>
             </div>
         </div>
         
@@ -467,8 +483,8 @@
     let ultimosResultados = null;
     let ultimaImagemProcessada = null;
     let mostrarGrid = false;
-    let gridInfo = null;
-    let marcacoesDetectadas = [];
+    let mostrarDebug = false;
+    let dadosProcessamento = null;
     
     // Elementos DOM
     const video = document.getElementById('video');
@@ -479,6 +495,8 @@
     const resultCanvas = document.getElementById('resultCanvas');
     const corrigirBtn = document.getElementById('corrigirBtn');
     const mostrarGridBtn = document.getElementById('mostrarGridBtn');
+    const debugBtn = document.getElementById('debugBtn');
+    const debugInfo = document.getElementById('debugInfo');
     const resultArea = document.getElementById('resultArea');
     const scoreDisplay = document.getElementById('scoreDisplay');
     const gradeDetail = document.getElementById('gradeDetail');
@@ -550,58 +568,174 @@
     
     function toggleCamera() { cameraActive ? desligarCamera() : iniciarCamera(); }
     
-    // ==================== DETECÇÃO AUTOMÁTICA DE CÍRCULOS ====================
-    function detectarCirculos(imageData) {
+    // ==================== PROCESSAMENTO COM OPENCV ====================
+    function processarComOpenCV(imageData) {
         return new Promise((resolve, reject) => {
+            if (!cvReady) {
+                reject(new Error('OpenCV não está pronto'));
+                return;
+            }
+            
             try {
                 const img = new Image();
                 img.onload = () => {
                     try {
-                        // Criar canvas para processamento
+                        // Criar canvas para o OpenCV
                         const tempCanvas = document.createElement('canvas');
+                        tempCanvas.width = img.width;
+                        tempCanvas.height = img.height;
                         const ctx = tempCanvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
                         
-                        // Redimensionar para um tamanho gerenciável
-                        let w = img.width;
-                        let h = img.height;
-                        const maxDim = 1200;
-                        if (w > maxDim || h > maxDim) {
-                            const scale = maxDim / Math.max(w, h);
-                            w = Math.floor(w * scale);
-                            h = Math.floor(h * scale);
+                        // Converter para Mat
+                        let src = cv.imread(tempCanvas);
+                        let srcGray = new cv.Mat();
+                        cv.cvtColor(src, srcGray, cv.COLOR_RGBA2GRAY);
+                        
+                        // ==================== 1. DETECTAR A FOLHA ====================
+                        // Aplicar blur para reduzir ruído
+                        let blurred = new cv.Mat();
+                        cv.GaussianBlur(srcGray, blurred, new cv.Size(5, 5), 0);
+                        
+                        // Detectar bordas com Canny
+                        let edges = new cv.Mat();
+                        cv.Canny(blurred, edges, 50, 150, 3);
+                        
+                        // Encontrar contornos
+                        let contours = new cv.MatVector();
+                        let hierarchy = new cv.Mat();
+                        cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+                        
+                        // Encontrar o maior contorno (a folha)
+                        let maxArea = 0;
+                        let maxContourIndex = -1;
+                        const imgArea = src.rows * src.cols;
+                        
+                        for (let i = 0; i < contours.size(); i++) {
+                            let contour = contours.get(i);
+                            let area = cv.contourArea(contour);
+                            // Filtrar por área (pelo menos 20% da imagem)
+                            if (area > imgArea * 0.2 && area > maxArea) {
+                                maxArea = area;
+                                maxContourIndex = i;
+                            }
                         }
-                        tempCanvas.width = w;
-                        tempCanvas.height = h;
-                        ctx.drawImage(img, 0, 0, w, h);
                         
-                        const imageDataObj = ctx.getImageData(0, 0, w, h);
-                        const data = imageDataObj.data;
+                        let folhaEncontrada = false;
+                        let pontosFolha = null;
+                        let warped = null;
+                        let M = null;
                         
-                        // Converter para escala de cinza
-                        const gray = new Uint8Array(w * h);
-                        for (let i = 0; i < data.length; i += 4) {
-                            const r = data[i];
-                            const g = data[i+1];
-                            const b = data[i+2];
-                            gray[i/4] = 0.299 * r + 0.587 * g + 0.114 * b;
+                        if (maxContourIndex >= 0) {
+                            let contour = contours.get(maxContourIndex);
+                            
+                            // Aproximar o contorno para um polígono
+                            let epsilon = 0.02 * cv.arcLength(contour, true);
+                            let approx = new cv.Mat();
+                            cv.approxPolyDP(contour, approx, epsilon, true);
+                            
+                            // Se tem 4 vértices, é um retângulo
+                            if (approx.rows === 4) {
+                                folhaEncontrada = true;
+                                pontosFolha = [];
+                                for (let i = 0; i < approx.rows; i++) {
+                                    let x = approx.data32S[i * 2];
+                                    let y = approx.data32S[i * 2 + 1];
+                                    pontosFolha.push({x, y});
+                                }
+                                
+                                // Ordenar pontos: superior-esquerdo, superior-direito, inferior-direito, inferior-esquerdo
+                                pontosFolha.sort((a, b) => a.y - b.y);
+                                let top = pontosFolha.slice(0, 2);
+                                let bottom = pontosFolha.slice(2);
+                                top.sort((a, b) => a.x - b.x);
+                                bottom.sort((a, b) => a.x - b.x);
+                                pontosFolha = [top[0], top[1], bottom[1], bottom[0]];
+                                
+                                // Corrigir perspectiva
+                                let srcPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                                    pontosFolha[0].x, pontosFolha[0].y,
+                                    pontosFolha[1].x, pontosFolha[1].y,
+                                    pontosFolha[2].x, pontosFolha[2].y,
+                                    pontosFolha[3].x, pontosFolha[3].y
+                                ]);
+                                
+                                let dstWidth = 1000;
+                                let dstHeight = Math.round(1000 * (src.rows / src.cols));
+                                let dstPoints = cv.matFromArray(4, 1, cv.CV_32FC2, [
+                                    0, 0,
+                                    dstWidth, 0,
+                                    dstWidth, dstHeight,
+                                    0, dstHeight
+                                ]);
+                                
+                                M = cv.getPerspectiveTransform(srcPoints, dstPoints);
+                                warped = new cv.Mat();
+                                cv.warpPerspective(src, warped, M, new cv.Size(dstWidth, dstHeight));
+                                
+                                srcPoints.delete();
+                                dstPoints.delete();
+                            }
+                            approx.delete();
                         }
                         
-                        // Binarização com Otsu
-                        const threshold = calcularOtsu(gray);
-                        const binary = new Uint8Array(w * h);
-                        for (let i = 0; i < gray.length; i++) {
-                            binary[i] = gray[i] < threshold ? 0 : 255;
+                        // Se não encontrou a folha, usar a imagem original redimensionada
+                        if (!folhaEncontrada || !warped) {
+                            logArea.innerHTML += "\n⚠️ Folha não detectada, usando imagem original";
+                            // Redimensionar para um tamanho padrão
+                            let maxDim = 1000;
+                            let scale = 1;
+                            if (src.rows > maxDim || src.cols > maxDim) {
+                                scale = maxDim / Math.max(src.rows, src.cols);
+                            }
+                            let newW = Math.floor(src.cols * scale);
+                            let newH = Math.floor(src.rows * scale);
+                            warped = new cv.Mat();
+                            cv.resize(src, warped, new cv.Size(newW, newH));
                         }
                         
-                        // Detectar círculos usando análise de componentes conectados
-                        const circles = encontrarCirculos(binary, w, h);
+                        // ==================== 2. DETECTAR A TABELA ====================
+                        // Converter para escala de cinza e binarizar
+                        let grayWarped = new cv.Mat();
+                        cv.cvtColor(warped, grayWarped, cv.COLOR_RGBA2GRAY);
+                        
+                        let binary = new cv.Mat();
+                        cv.threshold(grayWarped, binary, 0, 255, cv.THRESH_BINARY_INV + cv.THRESH_OTSU);
+                        
+                        // Detectar linhas da tabela
+                        let linhasHorizontais = detectarLinhas(binary, warped.cols, warped.rows, true);
+                        let linhasVerticais = detectarLinhas(binary, warped.cols, warped.rows, false);
+                        
+                        // Encontrar a grade da tabela
+                        let gridInfo = encontrarGrade(linhasHorizontais, linhasVerticais, numQuestoes, numAlternativas);
+                        
+                        // ==================== 3. DETECTAR CÍRCULOS ====================
+                        let circles = detectarCirculosOpenCV(binary, warped.cols, warped.rows);
+                        
+                        // ==================== 4. ORGANIZAR MARCAÇÕES ====================
+                        let questoes = organizarPorGrid(circles, gridInfo, numQuestoes, numAlternativas);
+                        
+                        // Limpar memória
+                        src.delete();
+                        srcGray.delete();
+                        blurred.delete();
+                        edges.delete();
+                        contours.delete();
+                        hierarchy.delete();
+                        grayWarped.delete();
+                        binary.delete();
                         
                         resolve({
-                            circles,
-                            w,
-                            h,
-                            binary
+                            warped: warped,
+                            folhaEncontrada: folhaEncontrada,
+                            pontosFolha: pontosFolha,
+                            gridInfo: gridInfo,
+                            circles: circles,
+                            questoes: questoes,
+                            linhasHorizontais: linhasHorizontais,
+                            linhasVerticais: linhasVerticais
                         });
+                        
                     } catch (err) {
                         reject(err);
                     }
@@ -614,58 +748,108 @@
         });
     }
     
-    function calcularOtsu(gray) {
-        const hist = new Array(256).fill(0);
-        for (let i = 0; i < gray.length; i++) {
-            hist[gray[i]]++;
-        }
+    function detectarLinhas(binary, w, h, horizontal) {
+        const linhas = [];
+        const step = 3;
+        const threshold = 0.3; // 30% de pixels pretos
         
-        const total = gray.length;
-        let sum = 0;
-        for (let i = 0; i < 256; i++) {
-            sum += i * hist[i];
-        }
-        
-        let sumB = 0;
-        let wB = 0;
-        let wF = 0;
-        let varMax = 0;
-        let threshold = 0;
-        
-        for (let i = 0; i < 256; i++) {
-            wB += hist[i];
-            if (wB === 0) continue;
-            wF = total - wB;
-            if (wF === 0) break;
-            
-            sumB += i * hist[i];
-            const mB = sumB / wB;
-            const mF = (sum - sumB) / wF;
-            const varBetween = wB * wF * (mB - mF) * (mB - mF);
-            
-            if (varBetween > varMax) {
-                varMax = varBetween;
-                threshold = i;
+        if (horizontal) {
+            // Detectar linhas horizontais
+            for (let y = 0; y < h; y += step) {
+                let darkCount = 0;
+                for (let x = 0; x < w; x++) {
+                    if (binary.data[y * w + x] === 0) darkCount++;
+                }
+                if (darkCount / w > threshold) {
+                    linhas.push(y);
+                }
+            }
+        } else {
+            // Detectar linhas verticais
+            for (let x = 0; x < w; x += step) {
+                let darkCount = 0;
+                for (let y = 0; y < h; y++) {
+                    if (binary.data[y * w + x] === 0) darkCount++;
+                }
+                if (darkCount / h > threshold) {
+                    linhas.push(x);
+                }
             }
         }
         
-        return threshold;
+        // Agrupar linhas próximas
+        return agruparLinhas(linhas, 10);
     }
     
-    function encontrarCirculos(binary, w, h) {
+    function agruparLinhas(linhas, distancia) {
+        if (linhas.length === 0) return [];
+        linhas.sort((a, b) => a - b);
+        const grupos = [];
+        let grupoAtual = [linhas[0]];
+        
+        for (let i = 1; i < linhas.length; i++) {
+            if (linhas[i] - grupoAtual[grupoAtual.length - 1] < distancia) {
+                grupoAtual.push(linhas[i]);
+            } else {
+                grupos.push(Math.round(grupoAtual.reduce((a, b) => a + b, 0) / grupoAtual.length));
+                grupoAtual = [linhas[i]];
+            }
+        }
+        if (grupoAtual.length > 0) {
+            grupos.push(Math.round(grupoAtual.reduce((a, b) => a + b, 0) / grupoAtual.length));
+        }
+        return grupos;
+    }
+    
+    function encontrarGrade(linhasH, linhasV, numQ, numAlt) {
+        // Encontrar a grade baseada nas linhas detectadas
+        // Se não encontrar linhas suficientes, usar divisão uniforme
+        let gridH = [];
+        let gridV = [];
+        
+        // Linhas horizontais (questões)
+        if (linhasH.length >= numQ + 1) {
+            // Pegar as primeiras numQ+1 linhas
+            gridH = linhasH.slice(0, numQ + 1);
+        } else {
+            // Usar divisão uniforme
+            const h = 1000; // altura padrão
+            for (let i = 0; i <= numQ; i++) {
+                gridH.push(Math.round(i * h / numQ));
+            }
+        }
+        
+        // Linhas verticais (alternativas)
+        if (linhasV.length >= numAlt + 1) {
+            gridV = linhasV.slice(0, numAlt + 1);
+        } else {
+            const w = 800; // largura padrão
+            for (let i = 0; i <= numAlt; i++) {
+                gridV.push(Math.round(i * w / numAlt));
+            }
+        }
+        
+        return {
+            linhasH: gridH,
+            linhasV: gridV,
+            numLinhas: gridH.length - 1,
+            numColunas: gridV.length - 1
+        };
+    }
+    
+    function detectarCirculosOpenCV(binary, w, h) {
         const circles = [];
-        const minRadius = Math.min(w, h) * 0.012;
-        const maxRadius = Math.min(w, h) * 0.045;
+        const minRadius = Math.min(w, h) * 0.015;
+        const maxRadius = Math.min(w, h) * 0.05;
         const visited = new Uint8Array(w * h);
         
-        // Tamanho mínimo da região para considerar um círculo
-        const minArea = Math.PI * minRadius * minRadius * 0.3;
-        const maxArea = Math.PI * maxRadius * maxRadius * 1.5;
+        // Usar Hough Circle Transform do OpenCV para melhor detecção
+        // Como estamos usando js, vamos fazer uma abordagem manual melhorada
         
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
+        for (let y = 0; y < h; y += 2) {
+            for (let x = 0; x < w; x += 2) {
                 const idx = y * w + x;
-                if (visited[idx] || binary[idx] === 255) continue;
+                if (visited[idx] || binary.data[idx] === 255) continue;
                 
                 // Flood fill para encontrar região escura
                 const region = [];
@@ -676,7 +860,7 @@
                 let sumX = 0, sumY = 0;
                 let count = 0;
                 
-                while (stack.length > 0) {
+                while (stack.length > 0 && count < 5000) {
                     const p = stack.pop();
                     region.push(p);
                     sumX += p.x;
@@ -690,15 +874,13 @@
                     
                     const neighbors = [
                         {x: p.x-1, y: p.y}, {x: p.x+1, y: p.y},
-                        {x: p.x, y: p.y-1}, {x: p.x, y: p.y+1},
-                        {x: p.x-1, y: p.y-1}, {x: p.x+1, y: p.y-1},
-                        {x: p.x-1, y: p.y+1}, {x: p.x+1, y: p.y+1}
+                        {x: p.x, y: p.y-1}, {x: p.x, y: p.y+1}
                     ];
                     
                     for (const n of neighbors) {
                         if (n.x >= 0 && n.x < w && n.y >= 0 && n.y < h) {
                             const nIdx = n.y * w + n.x;
-                            if (!visited[nIdx] && binary[nIdx] === 0) {
+                            if (!visited[nIdx] && binary.data[nIdx] === 0) {
                                 visited[nIdx] = 1;
                                 stack.push(n);
                             }
@@ -713,9 +895,9 @@
                 const height = maxY - minY + 1;
                 const raio = (width + height) / 4;
                 
-                // Verificar se a região é um círculo preenchido
-                if (area >= minArea && area <= maxArea) {
-                    // Verificar circularidade: proporção entre área e bounding box
+                // Verificar se é um círculo válido
+                if (area > 20 && raio >= minRadius && raio <= maxRadius) {
+                    // Verificar circularidade
                     const bboxArea = width * height;
                     const ratio = area / bboxArea;
                     
@@ -726,16 +908,15 @@
                     const centerX = (minX + maxX) / 2;
                     const centerY = (minY + maxY) / 2;
                     
-                    // Verificar se a região é bem preenchida (não é apenas um contorno)
                     for (let dy = -radius; dy <= radius; dy++) {
                         for (let dx = -radius; dx <= radius; dx++) {
                             const dist = Math.sqrt(dx*dx + dy*dy);
-                            if (dist <= radius * 0.8) {
+                            if (dist <= radius * 0.85) {
                                 const px = Math.round(centerX + dx);
                                 const py = Math.round(centerY + dy);
                                 if (px >= 0 && px < w && py >= 0 && py < h) {
                                     totalPixels++;
-                                    if (binary[py * w + px] === 0) darkPixels++;
+                                    if (binary.data[py * w + px] === 0) darkPixels++;
                                 }
                             }
                         }
@@ -743,8 +924,7 @@
                     
                     const fillRatio = totalPixels > 0 ? darkPixels / totalPixels : 0;
                     
-                    // Critérios para aceitar como círculo preenchido
-                    if (ratio > 0.3 && fillRatio > 0.25 && raio >= minRadius && raio <= maxRadius) {
+                    if (ratio > 0.2 && fillRatio > 0.15) {
                         circles.push({
                             x: cx,
                             y: cy,
@@ -766,58 +946,59 @@
         return circles;
     }
     
-    // ==================== ORGANIZAR POR LINHAS E COLUNAS ====================
-    function organizarGabarito(circles, w, h) {
-        if (circles.length === 0) return [];
-        
-        // Ordenar círculos por Y (linha) - LINHAS SÃO HORIZONTAIS
-        circles.sort((a, b) => a.y - b.y);
-        
-        // Dividir em grupos por linha (questões)
-        const alturaLinha = h / numQuestoes;
+    function organizarPorGrid(circles, gridInfo, numQ, numAlt) {
         const questoes = [];
+        const linhasH = gridInfo.linhasH;
+        const linhasV = gridInfo.linhasV;
         
-        for (let q = 0; q < numQuestoes; q++) {
-            const yMin = q * alturaLinha;
-            const yMax = (q + 1) * alturaLinha;
+        if (circles.length === 0) {
+            for (let i = 0; i < numQ; i++) {
+                questoes.push({
+                    questao: i + 1,
+                    marcacoes: [],
+                    numMarcacoes: 0,
+                    temMarca: false,
+                    temDupla: false
+                });
+            }
+            return questoes;
+        }
+        
+        // Para cada questão, encontrar círculos na sua linha
+        for (let q = 0; q < numQ; q++) {
+            const yMin = linhasH[q];
+            const yMax = linhasH[q + 1];
+            const alturaLinha = yMax - yMin;
             
             // Círculos nesta linha
-            const circulosLinha = circles.filter(c => c.y >= yMin && c.y < yMax);
+            const circulosLinha = circles.filter(c => c.y >= yMin && c.y <= yMax);
             
-            // Ordenar por X (coluna) - COLUNAS SÃO VERTICAIS (alternativas)
-            circulosLinha.sort((a, b) => a.x - b.x);
-            
+            // Para cada alternativa, encontrar o círculo mais próximo
             const marcacoes = [];
-            const larguraColuna = w / numAlternativas;
             
-            for (const circle of circulosLinha) {
-                // Determinar qual coluna (alternativa) este círculo pertence
-                let col = Math.floor(circle.x / larguraColuna);
-                if (col >= numAlternativas) col = numAlternativas - 1;
-                if (col < 0) col = 0;
+            for (let a = 0; a < numAlt; a++) {
+                const xMin = linhasV[a];
+                const xMax = linhasV[a + 1];
                 
-                // Verificar se já temos uma marcação nesta coluna
-                const existente = marcacoes.find(m => m.col === col);
-                if (existente) {
-                    // Se já tem, manter a com maior preenchimento
-                    if (circle.fillRatio > existente.fillRatio) {
-                        existente.circle = circle;
-                        existente.fillRatio = circle.fillRatio;
-                    }
-                } else {
+                // Círculos nesta coluna
+                const circulosColuna = circulosLinha.filter(c => c.x >= xMin && c.x <= xMax);
+                
+                if (circulosColuna.length > 0) {
+                    // Pegar o círculo com maior preenchimento
+                    const melhor = circulosColuna.reduce((a, b) => a.fillRatio > b.fillRatio ? a : b);
                     marcacoes.push({
-                        col: col,
-                        letra: letras[col],
-                        circle: circle,
-                        fillRatio: circle.fillRatio,
-                        x: circle.x,
-                        y: circle.y
+                        col: a,
+                        letra: letras[a],
+                        circle: melhor,
+                        fillRatio: melhor.fillRatio,
+                        x: melhor.x,
+                        y: melhor.y
                     });
                 }
             }
             
-            // Filtrar marcações com baixo preenchimento
-            const marcacoesFiltradas = marcacoes.filter(m => m.fillRatio > 0.15);
+            // Filtrar marcações com preenchimento mínimo
+            const marcacoesFiltradas = marcacoes.filter(m => m.fillRatio > 0.12);
             
             questoes.push({
                 questao: q + 1,
@@ -859,6 +1040,8 @@
         currentImageData = imageData;
         mostrarGrid = false;
         mostrarGridBtn.textContent = '📐 Mostrar Grid';
+        dadosProcessamento = null;
+        debugInfo.style.display = 'none';
         
         // Mostrar a imagem no canvas
         const img = new Image();
@@ -870,123 +1053,120 @@
         resultCanvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         
-        statusDeteccao.textContent = '🔍 Detectando círculos...';
+        statusDeteccao.textContent = '🔍 Processando com OpenCV...';
         statusDeteccao.className = 'status-deteccao';
         atualizarProgresso(10);
         
         try {
-            const resultado = await detectarCirculos(imageData);
-            atualizarProgresso(50);
+            const resultado = await processarComOpenCV(imageData);
+            atualizarProgresso(80);
             
-            const circles = resultado.circles;
-            const w = resultado.w;
-            const h = resultado.h;
+            dadosProcessamento = resultado;
             
-            // Organizar por linhas e colunas
-            const questoes = organizarGabarito(circles, w, h);
-            gridInfo = {
-                questoes,
-                circles,
-                w,
-                h
-            };
-            marcacoesDetectadas = questoes;
+            // Mostrar a imagem warpada
+            if (resultado.warped) {
+                const canvasWarp = document.createElement('canvas');
+                canvasWarp.width = resultado.warped.cols;
+                canvasWarp.height = resultado.warped.rows;
+                cv.imshow(canvasWarp, resultado.warped);
+                ultimaImagemProcessada = canvasWarp.toDataURL('image/jpeg', 0.9);
+                
+                // Atualizar canvas de resultado
+                const imgWarp = new Image();
+                imgWarp.src = ultimaImagemProcessada;
+                imgWarp.onload = () => {
+                    resultCanvas.width = imgWarp.width;
+                    resultCanvas.height = imgWarp.height;
+                    ctx.drawImage(imgWarp, 0, 0);
+                    
+                    // Desenhar grid e marcações
+                    desenharResultadoProcessado(resultado);
+                };
+            }
             
             // Contar resultados
+            const questoes = resultado.questoes || [];
             const qtdDetectadas = questoes.filter(q => q.temMarca).length;
             const qtdDuplas = questoes.filter(q => q.temDupla).length;
             
             if (qtdDetectadas > 0 || qtdDuplas > 0) {
                 statusDeteccao.innerHTML = `
-                    ✅ Detectadas <span class="highlight">${qtdDetectadas + qtdDuplas}</span> questões com marcação 
-                    (${qtdDetectadas} únicas, ${qtdDuplas} com dupla)
+                    ✅ Processamento concluído! 
+                    Folha: ${resultado.folhaEncontrada ? '✓' : '✗'} | 
+                    ${qtdDetectadas} únicas, ${qtdDuplas} duplas
                 `;
                 statusDeteccao.className = 'status-deteccao';
-                
-                // Mostrar as marcações na imagem
-                desenharMarcacoes(gridInfo);
             } else {
-                statusDeteccao.innerHTML = `⚠️ Nenhuma marcação detectada (${circles.length} círculos encontrados). Verifique a iluminação.`;
+                statusDeteccao.innerHTML = `⚠️ Nenhuma marcação detectada (${resultado.circles ? resultado.circles.length : 0} círculos encontrados)`;
                 statusDeteccao.className = 'status-deteccao warning';
             }
             
             atualizarProgresso(100);
             setTimeout(() => atualizarProgresso(0), 1000);
             
-            logArea.innerHTML += `\n🔍 Detectados ${circles.length} círculos, ${qtdDetectadas + qtdDuplas} questões com marcação`;
+            logArea.innerHTML += `\n🔍 Processado: ${resultado.circles ? resultado.circles.length : 0} círculos detectados`;
             
         } catch (err) {
-            statusDeteccao.innerHTML = '❌ Erro na detecção: ' + err.message;
+            statusDeteccao.innerHTML = '❌ Erro no processamento: ' + err.message;
             statusDeteccao.className = 'status-deteccao error';
             logArea.innerHTML += `\n❌ Erro: ${err.message}`;
+            console.error(err);
         }
     }
     
-    function desenharMarcacoes(info) {
-        if (!currentImageData) return;
-        
+    function desenharResultadoProcessado(resultado) {
         const ctx = resultCanvas.getContext('2d');
-        const img = new Image();
-        img.src = currentImageData;
-        img.onload = () => {
-            ctx.drawImage(img, 0, 0, resultCanvas.width, resultCanvas.height);
+        const w = resultCanvas.width;
+        const h = resultCanvas.height;
+        
+        // Desenhar grid se ativado
+        if (mostrarGrid && resultado.gridInfo) {
+            const grid = resultado.gridInfo;
             
-            const questoes = info.questoes;
-            const w = resultCanvas.width;
-            const h = resultCanvas.height;
-            const scaleX = w / info.w;
-            const scaleY = h / info.h;
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
             
-            // Desenhar grid se ativado
-            if (mostrarGrid) {
-                const cellW = w / numAlternativas;
-                const cellH = h / numQuestoes;
-                
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.3)';
-                ctx.lineWidth = 1;
-                ctx.setLineDash([4, 4]);
-                
-                for (let q = 0; q <= numQuestoes; q++) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, q * cellH);
-                    ctx.lineTo(w, q * cellH);
-                    ctx.stroke();
-                }
-                for (let a = 0; a <= numAlternativas; a++) {
-                    ctx.beginPath();
-                    ctx.moveTo(a * cellW, 0);
-                    ctx.lineTo(a * cellW, h);
-                    ctx.stroke();
-                }
-                ctx.setLineDash([]);
-            }
-            
-            // Desenhar círculos detectados
-            for (const circle of info.circles) {
-                const x = circle.x * scaleX;
-                const y = circle.y * scaleY;
-                const raio = circle.raio * Math.min(scaleX, scaleY);
-                
+            // Linhas horizontais
+            for (const y of grid.linhasH) {
                 ctx.beginPath();
-                ctx.arc(x, y, raio, 0, 2 * Math.PI);
-                ctx.fillStyle = 'rgba(59, 130, 246, 0.3)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(59, 130, 246, 0.7)';
-                ctx.lineWidth = 1.5;
+                ctx.moveTo(0, y);
+                ctx.lineTo(w, y);
                 ctx.stroke();
             }
             
-            // Desenhar marcações organizadas
-            for (const q of questoes) {
+            // Linhas verticais
+            for (const x of grid.linhasV) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, h);
+                ctx.stroke();
+            }
+            
+            ctx.setLineDash([]);
+        }
+        
+        // Desenhar círculos detectados
+        if (resultado.circles) {
+            for (const circle of resultado.circles) {
+                ctx.beginPath();
+                ctx.arc(circle.x, circle.y, circle.raio, 0, 2 * Math.PI);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(59, 130, 246, 0.5)';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            }
+        }
+        
+        // Desenhar marcações organizadas
+        if (resultado.questoes) {
+            for (const q of resultado.questoes) {
                 for (const marc of q.marcacoes) {
-                    const x = marc.x * scaleX;
-                    const y = marc.y * scaleY;
-                    const raio = marc.circle.raio * Math.min(scaleX, scaleY);
-                    
                     const cor = q.temDupla ? '#8b5cf6' : '#10b981';
                     
                     ctx.beginPath();
-                    ctx.arc(x, y, raio + 4, 0, 2 * Math.PI);
+                    ctx.arc(marc.x, marc.y, marc.circle.raio + 3, 0, 2 * Math.PI);
                     ctx.fillStyle = cor + '40';
                     ctx.fill();
                     ctx.strokeStyle = cor;
@@ -997,10 +1177,15 @@
                     ctx.font = 'bold 14px Arial';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(marc.letra, x, y);
+                    ctx.fillText(marc.letra, marc.x, marc.y);
+                    
+                    // Mostrar porcentagem de preenchimento
+                    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                    ctx.font = '10px Arial';
+                    ctx.fillText(Math.round(marc.fillRatio * 100) + '%', marc.x, marc.y + marc.circle.raio + 14);
                 }
             }
-        };
+        }
     }
     
     // ==================== CORREÇÃO ====================
@@ -1015,14 +1200,14 @@
         atualizarProgresso(10);
         
         try {
-            // Se não tiver gridInfo, processar imagem
-            if (!gridInfo) {
+            // Se não tiver dados processados, processar
+            if (!dadosProcessamento) {
                 await processarImagem(currentImageData);
             }
             
             atualizarProgresso(50);
             
-            const questoes = gridInfo ? gridInfo.questoes : [];
+            const questoes = dadosProcessamento ? dadosProcessamento.questoes : [];
             
             // Corrigir
             let acertos = 0, erros = 0, duplas = 0, naoDetectados = 0;
@@ -1038,33 +1223,36 @@
                 let marcado = '?';
                 let msg = '';
                 let classe = 'nd';
+                let fillPct = 0;
                 
                 if (q.temDupla) {
                     status = 'dupla';
                     marcado = '⚠️ DUPLA';
                     duplas++;
                     classe = 'dup';
-                    msg = `Q${numQ}: DUPLA marcação (${q.marcacoes.map(m => m.letra).join(', ')}) - ANULADA`;
+                    const letrasMarcadas = q.marcacoes.map(m => m.letra).join(', ');
+                    msg = `Q${numQ}: DUPLA (${letrasMarcadas}) - ANULADA`;
                 } else if (q.temMarca) {
                     const letra = q.marcacoes[0].letra;
+                    fillPct = q.marcacoes[0].fillRatio;
                     marcado = letra;
                     if (gab && gab !== "") {
                         if (gab === letra) {
                             status = 'acertou';
                             acertos++;
                             classe = 'ok';
-                            msg = `Q${numQ}: ✓ ${letra} (ACERTOU)`;
+                            msg = `Q${numQ}: ✓ ${letra} (${Math.round(fillPct*100)}%) - ACERTOU`;
                         } else {
                             status = 'errou';
                             erros++;
                             classe = 'err';
-                            msg = `Q${numQ}: ✗ ${letra} (ERROU - gabarito: ${gab})`;
+                            msg = `Q${numQ}: ✗ ${letra} (${Math.round(fillPct*100)}%) - ERROU (gabarito: ${gab})`;
                         }
                     } else {
                         status = 'errou';
                         erros++;
                         classe = 'err';
-                        msg = `Q${numQ}: ✗ ${letra} (sem gabarito)`;
+                        msg = `Q${numQ}: ✗ ${letra} (${Math.round(fillPct*100)}%) - sem gabarito`;
                     }
                 } else {
                     status = 'nao_detectado';
@@ -1079,7 +1267,8 @@
                     status: status,
                     marcado: marcado,
                     gabarito: gab || '-',
-                    msg: msg
+                    msg: msg,
+                    fillPct: fillPct
                 });
                 
                 htmlDetalhes += `<div class="${classe}">${msg}</div>`;
@@ -1090,13 +1279,12 @@
             
             // Salvar resultados
             ultimosResultados = { detalhes, acertos, erros, duplas, naoDetectados };
-            ultimaImagemProcessada = currentImageData;
             
             // Mostrar resultados
             let percentual = (acertos / numQuestoes) * 100;
             let nota = (acertos/numQuestoes*10).toFixed(1);
             scoreDisplay.innerText = `${acertos}/${numQuestoes}`;
-            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} marcação(ões) dupla(as)<br>⚪ ${naoDetectados} não detectado(s)`;
+            gradeDetail.innerHTML = `🎓 NOTA: ${nota} (${percentual.toFixed(1)}%)<br>✅ ${acertos} acerto${acertos !== 1 ? 's' : ''}<br>❌ ${erros} erro${erros !== 1 ? 's' : ''}<br>⚠️ ${duplas} dupla(s)<br>⚪ ${naoDetectados} não detectado(s)`;
             statsArea.innerHTML = `<div class="stat-item"><div class="stat-value" style="color:#10b981;">${acertos}</div><div class="stat-label">Acertos</div></div>
                 <div class="stat-item"><div class="stat-value" style="color:#ef4444;">${erros}</div><div class="stat-label">Erros</div></div>
                 <div class="stat-item"><div class="stat-value" style="color:#8b5cf6;">${duplas}</div><div class="stat-label">Duplas</div></div>
@@ -1112,7 +1300,7 @@
             atualizarProgresso(100);
             setTimeout(() => atualizarProgresso(0), 1000);
             
-            statusDeteccao.innerHTML = `✅ Correção concluída! ${acertos} acertos, ${erros} erros, ${duplas} duplas, ${naoDetectados} não detectados`;
+            statusDeteccao.innerHTML = `✅ Correção concluída! ${acertos} acertos, ${erros} erros, ${duplas} duplas`;
             statusDeteccao.className = 'status-deteccao';
             
         } catch (err) {
@@ -1138,8 +1326,20 @@
             const h = resultCanvas.height;
             const cellH = h / numQuestoes;
             
+            // Se tiver gridInfo, usar as linhas reais
+            let linhasH = null;
+            if (dadosProcessamento && dadosProcessamento.gridInfo) {
+                linhasH = dadosProcessamento.gridInfo.linhasH;
+            }
+            
             for (const det of ultimosResultados.detalhes) {
-                const y = (det.questao - 0.5) * cellH;
+                let y;
+                if (linhasH && det.questao < linhasH.length) {
+                    y = (linhasH[det.questao - 1] + linhasH[det.questao]) / 2;
+                    y = y * (h / (dadosProcessamento.warped ? dadosProcessamento.warped.rows : 1000));
+                } else {
+                    y = (det.questao - 0.5) * cellH;
+                }
                 
                 let cor, simbolo;
                 switch(det.status) {
@@ -1151,7 +1351,7 @@
                 
                 // Círculo de status
                 ctx.beginPath();
-                ctx.arc(30, y, 22, 0, 2 * Math.PI);
+                ctx.arc(25, y, 20, 0, 2 * Math.PI);
                 ctx.fillStyle = cor + '80';
                 ctx.fill();
                 ctx.strokeStyle = cor;
@@ -1159,25 +1359,26 @@
                 ctx.stroke();
                 
                 ctx.fillStyle = '#fff';
-                ctx.font = 'bold 18px Arial';
+                ctx.font = 'bold 16px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(simbolo, 30, y);
+                ctx.fillText(simbolo, 25, y);
                 
-                // Texto da questão e marcação
+                // Texto da questão
                 ctx.fillStyle = '#1e293b';
-                ctx.font = 'bold 14px Arial';
+                ctx.font = 'bold 13px Arial';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'middle';
                 const marcado = det.marcado || '?';
-                ctx.fillText(`Q${det.questao}: ${marcado}`, 65, y);
+                const pct = det.fillPct ? ` ${Math.round(det.fillPct*100)}%` : '';
+                ctx.fillText(`Q${det.questao}: ${marcado}${pct}`, 55, y);
                 
                 // Gabarito
                 if (det.gabarito && det.gabarito !== '-') {
                     ctx.fillStyle = '#64748b';
-                    ctx.font = '12px Arial';
+                    ctx.font = '11px Arial';
                     ctx.textAlign = 'right';
-                    ctx.fillText(`Gabarito: ${det.gabarito}`, w - 20, y);
+                    ctx.fillText(`Gab: ${det.gabarito}`, w - 15, y);
                 }
             }
         };
@@ -1298,13 +1499,13 @@
         currentImageData = null;
         ultimosResultados = null;
         ultimaImagemProcessada = null;
-        gridInfo = null;
-        marcacoesDetectadas = [];
+        dadosProcessamento = null;
         resultArea.style.display = 'none';
         const ctx = resultCanvas.getContext('2d');
         ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
-        statusDeteccao.textContent = '⏳ Aguardando nova imagem para detectar marcações...';
+        statusDeteccao.textContent = '⏳ Aguardando nova imagem...';
         statusDeteccao.className = 'status-deteccao';
+        debugInfo.style.display = 'none';
         logArea.innerHTML += "\n🔄 Pronto para corrigir nova prova!";
         alert("Pronto para corrigir nova prova! O gabarito oficial foi mantido.");
     }
@@ -1312,8 +1513,37 @@
     function toggleGrid() {
         mostrarGrid = !mostrarGrid;
         mostrarGridBtn.textContent = mostrarGrid ? '📐 Ocultar Grid' : '📐 Mostrar Grid';
-        if (gridInfo && currentImageData) {
-            desenharMarcacoes(gridInfo);
+        if (dadosProcessamento && ultimaImagemProcessada) {
+            desenharResultadoProcessado(dadosProcessamento);
+            if (ultimosResultados) {
+                desenharResultadoFinal();
+            }
+        }
+    }
+    
+    function toggleDebug() {
+        mostrarDebug = !mostrarDebug;
+        debugInfo.style.display = mostrarDebug ? 'block' : 'none';
+        if (mostrarDebug && dadosProcessamento) {
+            let debugText = '=== DADOS DE PROCESSAMENTO ===\n';
+            debugText += `Folha encontrada: ${dadosProcessamento.folhaEncontrada ? 'SIM' : 'NÃO'}\n`;
+            debugText += `Círculos detectados: ${dadosProcessamento.circles ? dadosProcessamento.circles.length : 0}\n`;
+            debugText += `Questões processadas: ${dadosProcessamento.questoes ? dadosProcessamento.questoes.length : 0}\n\n`;
+            
+            if (dadosProcessamento.gridInfo) {
+                debugText += '=== GRID ===\n';
+                debugText += `Linhas H: ${dadosProcessamento.gridInfo.linhasH.join(', ')}\n`;
+                debugText += `Linhas V: ${dadosProcessamento.gridInfo.linhasV.join(', ')}\n\n`;
+            }
+            
+            if (dadosProcessamento.questoes) {
+                debugText += '=== MARCAÇÕES ===\n';
+                for (const q of dadosProcessamento.questoes) {
+                    debugText += `Q${q.questao}: ${q.marcacoes.map(m => `${m.letra}(${Math.round(m.fillRatio*100)}%)`).join(', ') || 'vazio'}\n`;
+                }
+            }
+            
+            debugInfo.textContent = debugText;
         }
     }
     
@@ -1323,6 +1553,7 @@
     fileUpload.addEventListener('change', (e) => { if(e.target.files[0]) carregarUpload(e.target.files[0]); });
     corrigirBtn.addEventListener('click', executarCorrecao);
     mostrarGridBtn.addEventListener('click', toggleGrid);
+    debugBtn.addEventListener('click', toggleDebug);
     btnAplicarConfig.addEventListener('click', atualizarCartaoVisual);
     btnGerarPDF.addEventListener('click', gerarPDF);
     novaProvaBtn.addEventListener('click', resetarCorrecao);
@@ -1337,23 +1568,6 @@
     // ==================== INICIALIZAÇÃO ====================
     iniciarCamera();
     atualizarCartaoVisual();
-    
-    // Redimensionar canvas quando a janela mudar
-    window.addEventListener('resize', () => {
-        if (ultimaImagemProcessada) {
-            const img = new Image();
-            img.src = ultimaImagemProcessada;
-            img.onload = () => {
-                resultCanvas.width = img.width;
-                resultCanvas.height = img.height;
-                if (ultimosResultados) {
-                    desenharResultadoFinal();
-                } else if (gridInfo) {
-                    desenharMarcacoes(gridInfo);
-                }
-            };
-        }
-    });
 </script>
 </body>
 </html>
